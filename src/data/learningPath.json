@@ -1,0 +1,90 @@
+[
+  {
+    "id": "sql-foundations", "order": 1, "title": "SQL 与表", "subtitle": "从 DataFrame 思维切换到关系表", "visualType": "project",
+    "description": "理解行、列、主键与查询结果集，建立 SQL 的数据转换视角。",
+    "theory": ["表是一组具有固定字段的数据行，查询不会修改原表。", "SELECT 描述想要的结果，而不是逐行操作步骤。", "字段名保持数据库原名，便于追踪每一步来源。"],
+    "pandasBridge": "SQL 表 ≈ DataFrame；SELECT 查询 ≈ 返回一个新的 DataFrame。",
+    "sqlExample": "SELECT customer_id, order_date, amount\nFROM orders;",
+    "takeaways": ["查询产生新结果集", "主键唯一标识一行", "先确认数据粒度"], "practiceIds": ["select-high-value-orders"]
+  },
+  {
+    "id": "select", "order": 2, "title": "SELECT", "subtitle": "选择分析需要的字段", "visualType": "select",
+    "description": "像选择 DataFrame 的列一样，用 SELECT 控制输出结构。",
+    "theory": ["明确列名比 SELECT * 更适合分析任务。", "AS 只改变结果列名，不改变数据库字段。", "DISTINCT 用于去除完全相同的结果行。"],
+    "pandasBridge": "df[['customer_id', 'amount']] 对应 SELECT customer_id, amount。",
+    "sqlExample": "SELECT DISTINCT customer_id, amount\nFROM orders;",
+    "takeaways": ["只取需要的列", "理解 DISTINCT 的作用范围", "别名让结果更易读"], "practiceIds": ["select-high-value-orders", "latest-customers"]
+  },
+  {
+    "id": "where-order", "order": 3, "title": "WHERE 与 ORDER BY", "subtitle": "过滤行并建立顺序", "visualType": "filter",
+    "description": "先用条件留下分析对象，再按业务需要排序。",
+    "theory": ["WHERE 在聚合前过滤原始行。", "NULL 必须用 IS NULL / IS NOT NULL 判断。", "ORDER BY 可以使用多个字段，每个字段可独立指定 ASC 或 DESC。"],
+    "pandasBridge": "df.loc[condition].sort_values(...) 对应 WHERE ... ORDER BY ...。",
+    "sqlExample": "SELECT order_id, amount\nFROM orders\nWHERE amount >= 100\nORDER BY amount DESC;",
+    "takeaways": ["WHERE 过滤行", "NULL 不是普通值", "排序发生在结果输出前"], "practiceIds": ["select-high-value-orders", "active-users", "null-email-cleaning", "latest-customers"]
+  },
+  {
+    "id": "aggregate", "order": 4, "title": "聚合函数", "subtitle": "把多行压缩成指标", "visualType": "aggregate",
+    "description": "使用 COUNT、SUM、AVG、MIN、MAX 生成分析指标。",
+    "theory": ["聚合函数把一组行压缩为一个值。", "COUNT(column) 不统计 NULL，COUNT(*) 统计行数。", "先确认统计粒度，再选择聚合函数。"],
+    "pandasBridge": "df['amount'].sum() / mean() 对应 SUM(amount) / AVG(amount)。",
+    "sqlExample": "SELECT COUNT(*) AS orders, AVG(amount) AS avg_amount\nFROM orders;",
+    "takeaways": ["COUNT(*) 与 COUNT(column) 不同", "指标必须有明确粒度", "NULL 会影响聚合"], "practiceIds": ["city-average-order", "longest-album"]
+  },
+  {
+    "id": "group-by", "order": 5, "title": "GROUP BY", "subtitle": "从明细行到分组指标", "visualType": "group",
+    "description": "观察原始行如何按照维度进入不同分组，再各自完成聚合。",
+    "theory": ["GROUP BY 决定结果的粒度。", "SELECT 中的非聚合字段通常必须出现在 GROUP BY。", "先分组，再对每组分别计算聚合函数。"],
+    "pandasBridge": "df.groupby('customer_id').agg(...) 与 SQL 的 GROUP BY 完全对应。",
+    "sqlExample": "SELECT customer_id, SUM(amount) AS total_amount\nFROM orders\nGROUP BY customer_id;",
+    "takeaways": ["分组字段决定一行代表什么", "聚合在每个组内发生", "先看分组成员再看结果"], "practiceIds": ["city-average-order", "customers-who-bought-all-products", "monthly-revenue"]
+  },
+  {
+    "id": "having", "order": 6, "title": "HAVING", "subtitle": "过滤聚合后的分组", "visualType": "having",
+    "description": "清楚区分 WHERE 的分组前过滤与 HAVING 的分组后过滤。",
+    "theory": ["WHERE 看得到原始字段，看不到聚合结果。", "HAVING 在 GROUP BY 之后执行，可以使用 COUNT、SUM 等。", "能在 WHERE 完成的过滤应尽量提前完成。"],
+    "pandasBridge": "先过滤 df，再 groupby；对聚合结果再次筛选，相当于 HAVING。",
+    "sqlExample": "SELECT city, AVG(amount) AS avg_amount\nFROM orders\nWHERE status = 'paid'\nGROUP BY city\nHAVING AVG(amount) >= 100;",
+    "takeaways": ["WHERE：分组前", "HAVING：分组后", "执行顺序决定可用字段"], "practiceIds": ["cities-above-average", "products-sold-only-in-spring"]
+  },
+  {
+    "id": "join", "order": 7, "title": "JOIN", "subtitle": "沿键把两张表拼成分析宽表", "visualType": "join",
+    "description": "逐行观察连接条件如何匹配，以及 LEFT JOIN 为什么产生 NULL。",
+    "theory": ["JOIN 的核心是连接键与两边的数据粒度。", "INNER JOIN 只保留匹配行；LEFT JOIN 保留全部左表行。", "右表找不到匹配时，右表字段以 NULL 补齐。"],
+    "pandasBridge": "pd.merge(left, right, how='left', on='id') 对应 LEFT JOIN ... ON。",
+    "sqlExample": "SELECT v.visit_id, v.customer_id, t.amount\nFROM Visits v\nLEFT JOIN Transactions t\n  ON v.visit_id = t.visit_id;",
+    "takeaways": ["先检查连接键粒度", "一对多会增加行数", "NULL 表示未匹配"], "practiceIds": ["customers-without-transactions", "bands-without-albums", "manager-direct-reports", "next-day-retention"]
+  },
+  {
+    "id": "subquery", "order": 8, "title": "子查询", "subtitle": "把一个查询的结果交给另一个查询", "visualType": "subquery",
+    "description": "将复杂问题拆成可验证的小结果，再组合成最终分析。",
+    "theory": ["标量子查询返回一个值，可用于比较。", "派生表子查询返回一张中间表，必须有别名。", "CTE 与子查询都能表达中间步骤，CTE 通常更易读。"],
+    "pandasBridge": "先计算一个 Python 变量或临时 DataFrame，再用于后续过滤。",
+    "sqlExample": "SELECT employee_id, name, salary\nFROM Employees\nWHERE salary > (SELECT AVG(salary) FROM Employees);",
+    "takeaways": ["先单独运行内层查询", "确认子查询返回几行几列", "复杂分析优先拆步骤"], "practiceIds": ["customers-who-bought-all-products", "department-top-salary"]
+  },
+  {
+    "id": "case-when", "order": 9, "title": "CASE WHEN", "subtitle": "在查询中创建分类变量", "visualType": "case",
+    "description": "把连续指标或业务状态转换为可分析的类别。",
+    "theory": ["CASE 按从上到下的顺序匹配条件。", "一旦命中某个 WHEN，后续条件不会继续判断。", "ELSE 处理所有未命中的情况，避免意外 NULL。"],
+    "pandasBridge": "np.select(conditions, choices, default=...) 对应 CASE WHEN。",
+    "sqlExample": "SELECT order_id, amount,\n  CASE WHEN amount >= 200 THEN 'high'\n       WHEN amount >= 100 THEN 'medium'\n       ELSE 'low' END AS amount_band\nFROM orders;",
+    "takeaways": ["条件顺序很重要", "为新字段起清晰别名", "用 ELSE 兜底"], "practiceIds": ["price-band-case"]
+  },
+  {
+    "id": "window", "order": 10, "title": "窗口函数", "subtitle": "保留明细行，同时跨行计算", "visualType": "window",
+    "description": "点击不同日期，观察当前行的窗口范围和累计计算。",
+    "theory": ["窗口函数不会像 GROUP BY 一样减少行数。", "PARTITION BY 决定分区，ORDER BY 决定分区内顺序。", "ROWS 子句明确当前行能看到哪些行。"],
+    "pandasBridge": "groupby().transform()、rank()、rolling() 与 SQL 窗口函数思路相近。",
+    "sqlExample": "SELECT date, profit,\n  SUM(profit) OVER (ORDER BY date\n    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_profit\nFROM daily_profits;",
+    "takeaways": ["结果仍保持原粒度", "窗口范围随当前行变化", "排序是累计计算的前提"], "practiceIds": ["daily-cumulative-profit", "customer-spend-rank", "moving-average-7d"]
+  },
+  {
+    "id": "analytics-project", "order": 11, "title": "综合分析", "subtitle": "从业务问题到可解释 SQL", "visualType": "project",
+    "description": "综合查询、清洗、聚合、连接与窗口函数完成用户和销售分析。",
+    "theory": ["先写清楚结果一行代表什么。", "把复杂 SQL 拆成多个可单独验证的 CTE。", "每一步都检查行数、主键和 NULL，再进入下一步。"],
+    "pandasBridge": "像 Pandas pipeline 一样，将 SQL 写成一条可检查的数据转换链。",
+    "sqlExample": "WITH cleaned AS (...),\nuser_metrics AS (...),\nranked AS (...)\nSELECT * FROM ranked;",
+    "takeaways": ["问题先于语法", "逐步验证中间表", "结果必须能解释业务"], "practiceIds": ["repeat-purchase-rate", "next-day-retention", "monthly-revenue"]
+  }
+]
