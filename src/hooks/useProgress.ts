@@ -1,13 +1,15 @@
 import { useCallback, useState } from 'react'
-import type { ProgressMap } from '../types/problem'
+import type { ProgressMap, ProjectProgressMap } from '../types/problem'
 import {
   clearProgress,
   getProblemProgress,
   loadActivity,
   loadCompletedLessons,
   loadProgress,
+  loadProjectProgress,
   recordActivity,
   toggleCompletedLesson,
+  toggleProjectStep,
   updateProblemProgress,
 } from '../services/storage'
 
@@ -15,6 +17,7 @@ export function useProgress() {
   const [progress, setProgress] = useState<ProgressMap>(() => loadProgress())
   const [activityDays, setActivityDays] = useState<string[]>(() => loadActivity())
   const [completedLessons, setCompletedLessons] = useState<string[]>(() => loadCompletedLessons())
+  const [projectProgress, setProjectProgress] = useState<ProjectProgressMap>(() => loadProjectProgress())
 
   const saveDraft = useCallback((id: string, draft: string) => {
     setProgress((current) => updateProblemProgress(current, id, { draft }))
@@ -39,11 +42,16 @@ export function useProgress() {
     setCompletedLessons((current) => toggleCompletedLesson(current, id))
   }, [])
 
+  const toggleProject = useCallback((projectId: string, stepId: string) => {
+    setProjectProgress((current) => toggleProjectStep(current, projectId, stepId))
+  }, [])
+
   const reset = useCallback(() => {
     setProgress(clearProgress())
     setActivityDays([])
     setCompletedLessons([])
+    setProjectProgress({})
   }, [])
 
-  return { progress, activityDays, completedLessons, saveDraft, recordAttempt, toggleLesson, reset }
+  return { progress, activityDays, completedLessons, projectProgress, saveDraft, recordAttempt, toggleLesson, toggleProject, reset }
 }

@@ -6,15 +6,16 @@ import {
   Code2,
   Database,
   Lightbulb,
+  Minus,
   Play,
+  Plus,
   RotateCcw,
   Sparkles,
   Table2,
   TerminalSquare,
-  X,
   XCircle,
 } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { AppHeader } from '../components/AppHeader'
 import { DataTableView } from '../components/DataTableView'
 import { ExplanationDrawer } from '../components/ExplanationDrawer'
@@ -32,6 +33,11 @@ interface PracticePageProps {
   onDraft: (id: string, sql: string) => void
   onAttempt: (id: string, correct: boolean, sql: string) => void
 }
+
+const DEFAULT_EDITOR_FONT_SIZE = 18
+const MIN_EDITOR_FONT_SIZE = 14
+const MAX_EDITOR_FONT_SIZE = 28
+const EDITOR_FONT_STORAGE_KEY = 'sql-learning-lab:editor-font-size:v1'
 
 export function PracticePage({
   problem,
@@ -55,21 +61,25 @@ export function PracticePage({
   const [isRunning, setIsRunning] = useState(false)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [hintOpen, setHintOpen] = useState(false)
+  const [editorFontSize, setEditorFontSize] = useState(() => {
+    const savedSize = Number(window.localStorage.getItem(EDITOR_FONT_STORAGE_KEY))
+    return Number.isFinite(savedSize) && savedSize >= MIN_EDITOR_FONT_SIZE && savedSize <= MAX_EDITOR_FONT_SIZE ? savedSize : DEFAULT_EDITOR_FONT_SIZE
+  })
   const saveTimer = useRef<number | undefined>(undefined)
   const editorRef = useRef<HTMLTextAreaElement | null>(null)
+  const highlightRef = useRef<HTMLPreElement | null>(null)
+  const lineNumbersRef = useRef<HTMLDivElement | null>(null)
+  const resultRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => () => window.clearTimeout(saveTimer.current), [])
 
   useEffect(() => {
     if (!result) return
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setResult(null)
-    }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
+    requestAnimationFrame(() => resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }))
   }, [result])
 
   const lineNumbers = useMemo(() => sql.split('\n').map((_, index) => index + 1), [sql])
+  const highlightedSql = useMemo(() => highlightSql(sql, problem), [problem, sql])
   const currentIdentifier = useMemo(() => getIdentifierAt(sql, cursorPosition), [cursorPosition, sql])
   const autocompleteItems = useMemo(() => {
     const prefix = currentIdentifier.prefix.toLowerCase()
@@ -99,8 +109,15 @@ export function PracticePage({
     const lines = beforeCursor.split('\n')
     const row = lines.length - 1
     const column = lines.at(-1)?.length ?? 0
-    return { top: 18 + row * 28, left: 58 + Math.min(column, 12) * 9.4 }
-  }, [cursorPosition, sql])
+    return { top: 20 + row * editorFontSize * 1.75, left: 62 + Math.min(column, 12) * editorFontSize * .6 }
+  }, [cursorPosition, editorFontSize, sql])
+  const changeEditorFontSize = (change: number) => {
+    setEditorFontSize((current) => {
+      const next = Math.max(MIN_EDITOR_FONT_SIZE, Math.min(MAX_EDITOR_FONT_SIZE, current + change))
+      window.localStorage.setItem(EDITOR_FONT_STORAGE_KEY, String(next))
+      return next
+    })
+  }
   const editSql = (value: string) => {
     setSql(value)
     setSuggestionIndex(0)
@@ -206,106 +223,125 @@ export function PracticePage({
 
       <main className="workspace-grid">
         <section className="workspace-panel problem-panel">
-          <div className="panel-header">
-            <span className="panel-kicker">QUESTION {String(problem.number).padStart(2, '0')}</span>
-            <h1>{problem.title}</h1>
-            <div className="title-meta">
-              <span className={`difficulty ${problem.difficulty}`}>{problem.difficulty}</span>
-              {saved.completed && <span className="solved-badge"><CheckCircle2 size={14} /> 已完成</span>}
-            </div>
-            <div className="problem-tags">{problem.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
-          </div>
-          <div className="panel-scroll problem-content">
-            <article>
-              <h2>问题描述</h2>
-              <p>{problem.description}</p>
-              <div className="challenge-callout"><TargetIcon /><p>{problem.challenge}</p></div>
-            </article>
-
-            <article>
-              <h2><Database size={16} /> 数据表</h2>
-              {problem.tables.map((table) => <DataTableView key={table.name} table={table} />)}
-              <div className="output-example-section">
-                <div className="output-example-heading">
-                  <span className="output-example-icon"><Table2 size={18} /></span>
-                  <div>
-                    <h3>期望输出示例</h3>
-                    <p>用于确认字段名、字段顺序和数据格式，不需要逐字复制示例值。</p>
-                  </div>
-                </div>
-                <DataTableView
-                  table={{
-                    ...problem.expectedResult,
-                    name: 'expected_output',
-                    rows: problem.expectedResult.rows.slice(0, 2),
-                  }}
-                />
+          <div className="panel-scroll problem-panel-scroll">
+            <div className="panel-header">
+              <span className="panel-kicker">QUESTION {String(problem.number).padStart(2, '0')}</span>
+              <h1>{problem.title}</h1>
+              <div className="title-meta">
+                <span className={`difficulty ${problem.difficulty}`}>{problem.difficulty}</span>
+                {saved.completed && <span className="solved-badge"><CheckCircle2 size={14} /> 已完成</span>}
               </div>
-            </article>
+              <div className="problem-tags">{problem.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+            </div>
+            <div className="problem-content">
+              <article>
+                <h2>问题描述</h2>
+                <p>{problem.description}</p>
+                <div className="challenge-callout"><TargetIcon /><p>{problem.challenge}</p></div>
+              </article>
 
-            <article className="hint-section">
-              <button className="hint-toggle" onClick={() => setHintOpen((open) => !open)}>
-                <span><Lightbulb size={17} /> 需要一点提示？</span>
-                <ChevronDown className={hintOpen ? 'rotated' : ''} size={17} />
-              </button>
-              {hintOpen && (
-                <ol className="hint-list">
-                  {problem.hints.map((hint) => <li key={hint}>{hint}</li>)}
-                </ol>
-              )}
-            </article>
+              <article>
+                <h2><Database size={16} /> 数据表</h2>
+                {problem.tables.map((table) => <DataTableView key={table.name} table={table} />)}
+                <div className="output-example-section">
+                  <div className="output-example-heading">
+                    <span className="output-example-icon"><Table2 size={18} /></span>
+                    <div>
+                      <h3>期望输出示例</h3>
+                      <p>用于确认字段名、字段顺序和数据格式，不需要逐字复制示例值。</p>
+                    </div>
+                  </div>
+                  <DataTableView
+                    table={{
+                      ...problem.expectedResult,
+                      name: 'expected_output',
+                      rows: problem.expectedResult.rows.slice(0, 2),
+                    }}
+                  />
+                </div>
+              </article>
+
+              <article className="hint-section">
+                <button className="hint-toggle" onClick={() => setHintOpen((open) => !open)}>
+                  <span><Lightbulb size={17} /> 需要一点提示？</span>
+                  <ChevronDown className={hintOpen ? 'rotated' : ''} size={17} />
+                </button>
+                {hintOpen && (
+                  <ol className="hint-list">
+                    {problem.hints.map((hint) => <li key={hint}>{hint}</li>)}
+                  </ol>
+                )}
+              </article>
+            </div>
           </div>
         </section>
 
-        <section className="workspace-panel editor-panel">
+        <section className={`workspace-panel editor-panel ${result ? 'has-result' : ''}`}>
           <div className="workspace-panel-title">
             <div><Code2 size={17} /><strong>SQL 编辑器</strong></div>
-            <span>MySQL 8.0</span>
+            <div className="editor-title-tools">
+              <div className="editor-zoom-controls" aria-label="编辑器字号">
+                <button disabled={editorFontSize === MIN_EDITOR_FONT_SIZE} onClick={() => changeEditorFontSize(-2)} aria-label="缩小编辑器文字"><Minus size={15} /></button>
+                <span>{Math.round(editorFontSize / DEFAULT_EDITOR_FONT_SIZE * 100)}%</span>
+                <button disabled={editorFontSize === MAX_EDITOR_FONT_SIZE} onClick={() => changeEditorFontSize(2)} aria-label="放大编辑器文字"><Plus size={15} /></button>
+              </div>
+              <span className="editor-dialect">MySQL 8.0</span>
+            </div>
           </div>
-          <div className="editor-shell">
+          <div className="editor-shell" style={{ '--editor-font-size': `${editorFontSize}px` } as CSSProperties}>
             <div className="editor-chrome">
               <span /><span /><span />
               <small>solution.sql</small>
             </div>
             <div className="editor-body">
-              <div className="line-numbers" aria-hidden="true">{lineNumbers.map((line) => <span key={line}>{line}</span>)}</div>
-              <textarea
-                ref={editorRef}
-                value={sql}
-                onChange={(event) => {
-                  setCursorPosition(event.target.selectionStart)
-                  editSql(event.target.value)
-                }}
-                onSelect={(event) => {
-                  setCursorPosition(event.currentTarget.selectionStart)
-                  setSuggestionIndex(0)
-                  setSuppressedPrefix('')
-                }}
-                onKeyDown={onEditorKeyDown}
-                spellCheck={false}
-                aria-label="SQL 编辑器"
-                aria-autocomplete="list"
-                aria-controls="sql-autocomplete-list"
-              />
-              {autocompleteItems.length > 0 && (
-                <div id="sql-autocomplete-list" className="sql-autocomplete" role="listbox" style={{ top: autocompletePosition.top, left: autocompletePosition.left }}>
-                  <div className="autocomplete-caption">快捷输入 <span>Tab / Enter</span></div>
-                  {autocompleteItems.map((item, index) => (
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={index === activeSuggestionIndex}
-                      className={index === activeSuggestionIndex ? 'active' : ''}
-                      key={`${item.kind}-${item.value}`}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => completeIdentifier(item.value)}
-                    >
-                      <span className={`autocomplete-kind ${item.kind.toLowerCase()}`}>{item.kind}</span>
-                      <code>{item.value}</code>
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div ref={lineNumbersRef} className="line-numbers" aria-hidden="true">{lineNumbers.map((line) => <span key={line}>{line}</span>)}</div>
+              <div className="editor-code-area">
+                <pre ref={highlightRef} className="sql-highlight-layer" aria-hidden="true">{highlightedSql}</pre>
+                <textarea
+                  ref={editorRef}
+                  value={sql}
+                  onChange={(event) => {
+                    setCursorPosition(event.target.selectionStart)
+                    editSql(event.target.value)
+                  }}
+                  onSelect={(event) => {
+                    setCursorPosition(event.currentTarget.selectionStart)
+                    setSuggestionIndex(0)
+                    setSuppressedPrefix('')
+                  }}
+                  onScroll={(event) => {
+                    if (highlightRef.current) {
+                      highlightRef.current.scrollTop = event.currentTarget.scrollTop
+                      highlightRef.current.scrollLeft = event.currentTarget.scrollLeft
+                    }
+                    if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = event.currentTarget.scrollTop
+                  }}
+                  onKeyDown={onEditorKeyDown}
+                  spellCheck={false}
+                  aria-label="SQL 编辑器"
+                  aria-autocomplete="list"
+                  aria-controls="sql-autocomplete-list"
+                />
+                {autocompleteItems.length > 0 && (
+                  <div id="sql-autocomplete-list" className="sql-autocomplete" role="listbox" style={{ top: autocompletePosition.top, left: autocompletePosition.left }}>
+                    <div className="autocomplete-caption">快捷输入 <span>Tab / Enter</span></div>
+                    {autocompleteItems.map((item, index) => (
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={index === activeSuggestionIndex}
+                        className={index === activeSuggestionIndex ? 'active' : ''}
+                        key={`${item.kind}-${item.value}`}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => completeIdentifier(item.value)}
+                      >
+                        <span className={`autocomplete-kind ${item.kind.toLowerCase()}`}>{item.kind}</span>
+                        <code>{item.value}</code>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
             <div className="editor-status"><span>Ln {lineNumbers.length}, Col 1</span><span>输入 2 个字符 · Tab 补全 · SQL</span></div>
           </div>
@@ -314,6 +350,35 @@ export function PracticePage({
             <span className="shortcut-hint">Ctrl + Enter</span>
             <button className="run-button" onClick={execute} disabled={isRunning}><Play size={17} fill="currentColor" /> {isRunning ? '正在运行…' : '提交 SQL'}</button>
           </div>
+          {result && (
+            <section ref={resultRef} className={`inline-result-panel ${result.status}`} aria-live="polite">
+              <div className="inline-result-header">
+                <div><TerminalSquare size={19} /><strong>运行结果</strong></div>
+                <span><Clock3 size={14} /> {result.durationMs} ms</span>
+              </div>
+              <div className="inline-result-body">
+                {result.status === 'success' ? (
+                  <div className="run-result success-result">
+                    <div className="result-message"><CheckCircle2 size={22} /><div><strong>{result.message}</strong><span>{result.table?.rows.length} rows returned</span></div></div>
+                    {result.table && <DataTableView table={result.table} />}
+                    <div className="success-note">完成状态和本次 SQL 已保存到本机。</div>
+                  </div>
+                ) : (
+                  <div className="run-result error-result">
+                    <div className="result-message"><XCircle size={22} /><div><strong>还差一点</strong><span>{result.message}</span></div></div>
+                    {result.table && <DataTableView table={result.table} />}
+                    {result.missingConcepts.length > 0 && (
+                      <div className="missing-card">
+                        <span>建议检查以下关键逻辑</span>
+                        <div>{result.missingConcepts.map((item) => <code key={item}>{item}</code>)}</div>
+                      </div>
+                    )}
+                    <button className="inline-hint-button" onClick={() => setHintOpen(true)}><Lightbulb size={16} /> 查看提示</button>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
           <button className="thinking-button" onClick={() => setDrawerOpen(true)}>
             <span className="thinking-icon"><Sparkles size={18} /></span>
             <span><strong>查看解题思路</strong><small>逐步查看中间表，不会立刻显示答案</small></span>
@@ -324,56 +389,6 @@ export function PracticePage({
       </main>
 
       <div className="simulator-note">SQL 在浏览器内的真实数据库中执行，并逐项核对结果；数据不会离开浏览器。</div>
-      {result && (
-        <div className="result-modal-layer" role="dialog" aria-modal="true" aria-label="SQL 运行结果">
-          <button className="result-modal-backdrop" onClick={() => setResult(null)} aria-label="关闭运行结果" />
-          <section className={`result-modal ${result.status}`}>
-            <div className="result-modal-header">
-              <div className="result-modal-title">
-                <span className="result-modal-icon"><TerminalSquare size={20} /></span>
-                <div>
-                  <span className="eyebrow">QUERY RESULT</span>
-                  <h2>运行结果</h2>
-                </div>
-              </div>
-              <div className="result-modal-meta">
-                <span><Clock3 size={14} /> {result.durationMs} ms</span>
-                <button className="icon-button" onClick={() => setResult(null)} aria-label="关闭"><X size={19} /></button>
-              </div>
-            </div>
-            <div className="result-modal-body">
-              {result.status === 'success' ? (
-                <div className="run-result success-result">
-                  <div className="result-message"><CheckCircle2 size={22} /><div><strong>{result.message}</strong><span>{result.table?.rows.length} rows returned</span></div></div>
-                  {result.table && <DataTableView table={result.table} />}
-                  <div className="success-note">完成状态和本次 SQL 已保存到本机。</div>
-                </div>
-              ) : (
-                <div className="run-result error-result">
-                  <div className="result-message"><XCircle size={22} /><div><strong>还差一点</strong><span>{result.message}</span></div></div>
-                  {result.table && <DataTableView table={result.table} />}
-                  {result.missingConcepts.length > 0 && (
-                    <div className="missing-card">
-                      <span>建议检查以下关键逻辑</span>
-                      <div>{result.missingConcepts.map((item) => <code key={item}>{item}</code>)}</div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="result-modal-footer">
-              {result.status === 'error' && (
-                <button className="secondary-button" onClick={() => { setResult(null); setHintOpen(true) }}>
-                  <Lightbulb size={16} /> 查看提示
-                </button>
-              )}
-              <button className="primary-button" onClick={() => setResult(null)}>
-                {result.status === 'success' ? '完成并关闭' : '继续修改'}
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
       <ExplanationDrawer problem={problem} open={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </div>
   )
@@ -393,4 +408,38 @@ function getIdentifierAt(sql: string, cursor: number) {
 function identifierMatches(identifier: string, prefix: string) {
   const normalized = identifier.toLowerCase()
   return normalized.startsWith(prefix) || normalized.split('_').some((part) => part.startsWith(prefix))
+}
+
+const sqlKeywords = new Set([
+  'all', 'and', 'as', 'asc', 'between', 'by', 'case', 'cross', 'delete', 'desc', 'distinct',
+  'else', 'end', 'exists', 'from', 'full', 'group', 'having', 'in', 'inner', 'insert', 'into',
+  'is', 'join', 'left', 'like', 'limit', 'not', 'null', 'offset', 'on', 'or', 'order', 'outer',
+  'over', 'partition', 'right', 'select', 'set', 'then', 'union', 'update', 'values', 'when',
+  'where', 'with',
+])
+
+const sqlFunctions = new Set([
+  'avg', 'coalesce', 'concat', 'count', 'date_add', 'date_format', 'ifnull', 'lag', 'lead',
+  'max', 'min', 'rank', 'round', 'row_number', 'sum',
+])
+
+function highlightSql(sql: string, problem: SqlProblem) {
+  const tables = new Set(problem.tables.map((table) => table.name.toLowerCase()))
+  const columns = new Set(problem.tables.flatMap((table) => table.columns.map((column) => column.toLowerCase())))
+  const parts = sql.match(/--[^\n]*|\/\*[\s\S]*?\*\/|'(?:''|\\.|[^'])*'|"(?:""|\\.|[^"])*"|`(?:``|[^`])*`|\b\d+(?:\.\d+)?\b|\b[A-Za-z_][A-Za-z0-9_$]*\b|\s+|[^\sA-Za-z0-9_]+/g) ?? []
+
+  return parts.length > 0 ? parts.map((part, index) => {
+    const normalized = part.toLowerCase()
+    let kind = ''
+    if (part.startsWith('--') || part.startsWith('/*')) kind = 'comment'
+    else if (/^['"`]/.test(part)) kind = 'string'
+    else if (/^\d/.test(part)) kind = 'number'
+    else if (sqlKeywords.has(normalized)) kind = 'keyword'
+    else if (sqlFunctions.has(normalized)) kind = 'function'
+    else if (tables.has(normalized)) kind = 'table'
+    else if (columns.has(normalized)) kind = 'column'
+    else if (/^[=<>+*/%!-]+$/.test(part)) kind = 'operator'
+
+    return kind ? <span className={`sql-token-${kind}`} key={`${index}-${part}`}>{part}</span> : part
+  }) : ' '
 }

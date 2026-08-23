@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import additionalProblemData from './data/additionalQuestions.json'
+import careerProblemData from './data/careerQuestions.json'
+import chapterDeepDiveData from './data/chapterDeepDives.json'
 import learningData from './data/learningPath.json'
 import playgroundData from './data/playgroundScenarios.json'
 import problemData from './data/problems.json'
@@ -9,7 +11,7 @@ import { HomePage } from './pages/HomePage'
 import { LearningPathPage } from './pages/LearningPathPage'
 import { PlaygroundPage } from './pages/PlaygroundPage'
 import { PracticePage } from './pages/PracticePage'
-import type { LearningChapter, PlaygroundScenario, SqlProblem } from './types/problem'
+import type { ChapterDeepDive, ExplanationStep, LearningChapter, PlaygroundScenario, SqlProblem } from './types/problem'
 
 const legacyMetadata: Record<string, { source: string; chapter: string }> = {
   'next-day-retention': { source: 'LeetCode · 经典', chapter: 'JOIN' },
@@ -23,8 +25,11 @@ const legacyMetadata: Record<string, { source: string; chapter: string }> = {
 const problems = [
   ...(problemData as Omit<SqlProblem, 'source' | 'chapter'>[]).map((problem) => ({ ...problem, ...legacyMetadata[problem.id] })),
   ...(additionalProblemData as SqlProblem[]),
+  ...(careerProblemData as (Omit<SqlProblem, 'explanationSteps'> & { visualizationSteps: ExplanationStep[] })[])
+    .map((problem) => ({ ...problem, explanationSteps: problem.visualizationSteps })),
 ] as SqlProblem[]
-const chapters = learningData as LearningChapter[]
+const chapterDeepDives = Object.fromEntries((chapterDeepDiveData as ChapterDeepDive[]).map((item) => [item.id, item]))
+const chapters = (learningData as Omit<LearningChapter, 'deepDive'>[]).map((chapter) => ({ ...chapter, deepDive: chapterDeepDives[chapter.id] })) as LearningChapter[]
 const scenarios = playgroundData as PlaygroundScenario[]
 
 function currentHash() {
@@ -33,7 +38,7 @@ function currentHash() {
 
 export default function App() {
   const [route, setRoute] = useState(() => currentHash())
-  const { progress, activityDays, completedLessons, saveDraft, recordAttempt, toggleLesson, reset } = useProgress()
+  const { progress, activityDays, completedLessons, projectProgress, saveDraft, recordAttempt, toggleLesson, toggleProject, reset } = useProgress()
 
   useEffect(() => {
     const syncRoute = () => setRoute(currentHash())
@@ -79,7 +84,7 @@ export default function App() {
   }
 
   if (route.startsWith('learn')) {
-    return <LearningPathPage chapters={chapters} completedLessons={completedLessons} completedProblems={completed} totalProblems={problems.length} initialChapter={route.split('/')[1]} onNavigateSection={navigateSection} onToggleLesson={toggleLesson} onOpenPractice={openProblem} />
+    return <LearningPathPage chapters={chapters} completedLessons={completedLessons} completedProblems={completed} totalProblems={problems.length} initialChapter={route.split('/')[1]} projectProgress={projectProgress} onNavigateSection={navigateSection} onToggleLesson={toggleLesson} onToggleProjectStep={toggleProject} onOpenPractice={openProblem} />
   }
 
   if (route === 'playground') {
@@ -90,5 +95,5 @@ export default function App() {
     return <HomePage problems={problems} progress={progress} onOpen={openProblem} onReset={reset} libraryOnly onNavigateSection={navigateSection} />
   }
 
-  return <DashboardPage problems={problems} chapters={chapters} progress={progress} activityDays={activityDays} completedLessons={completedLessons} onOpen={openProblem} onReset={reset} onNavigateSection={navigateSection} />
+  return <DashboardPage problems={problems} chapters={chapters} progress={progress} activityDays={activityDays} completedLessons={completedLessons} projectProgress={projectProgress} onOpen={openProblem} onReset={reset} onNavigateSection={navigateSection} />
 }

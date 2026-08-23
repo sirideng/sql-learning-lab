@@ -49,7 +49,7 @@ function normalizeSql(sql: string) {
 }
 
 function translateMySql(sql: string) {
-  const translatedFunctions = sql
+  const translatedFunctions = translateConcatExpressions(sql)
     .replace(
       /date_add\s*\(\s*([^,()]+?)\s*,\s*interval\s+([+-]?\d+)\s+(day|month|year|hour|minute|second)s?\s*\)/gi,
       (_match, expression: string, amount: string, unit: string) => {
@@ -60,10 +60,82 @@ function translateMySql(sql: string) {
       },
     )
     .replace(
+      /date_sub\s*\(\s*([^,()]+?)\s*,\s*interval\s+([+-]?\d+)\s+(day|month|year|hour|minute|second)s?\s*\)/gi,
+      (_match, expression: string, amount: string, unit: string) => {
+        const numericAmount = -Number(amount)
+        const modifier = `${numericAmount >= 0 ? '+' : ''}${numericAmount} ${unit.toLowerCase()}`
+        const sqliteFunction = /^(hour|minute|second)$/i.test(unit) ? 'datetime' : 'date'
+        return `${sqliteFunction}(${expression.trim()}, '${modifier}')`
+      },
+    )
+    .replace(
       /date_format\s*\(\s*([^,()]+?)\s*,\s*(['"])(.*?)\2\s*\)/gi,
       (_match, expression: string, _quote: string, format: string) => `strftime('${format}', ${expression.trim()})`,
     )
+    .replace(/datediff\s*\(\s*([^,()]+?)\s*,\s*([^,()]+?)\s*\)/gi, (_match, end: string, start: string) => `CAST(julianday(${end.trim()}) - julianday(${start.trim()}) AS INTEGER)`)
+    .replace(/\byear\s*\(\s*([^()]+?)\s*\)/gi, (_match, expression: string) => `CAST(strftime('%Y', ${expression.trim()}) AS INTEGER)`)
+    .replace(/\bmonth\s*\(\s*([^()]+?)\s*\)/gi, (_match, expression: string) => `CAST(strftime('%m', ${expression.trim()}) AS INTEGER)`)
+    .replace(/\bday\s*\(\s*([^()]+?)\s*\)/gi, (_match, expression: string) => `CAST(strftime('%d', ${expression.trim()}) AS INTEGER)`)
   return translateMySqlDivision(translatedFunctions)
+}
+
+function translateConcatExpressions(sql: string): string {
+  const matcher = /\bconcat\s*\(/gi
+  let cursor = 0
+  let output = ''
+
+  while (cursor < sql.length) {
+    matcher.lastIndex = cursor
+    const match = matcher.exec(sql)
+    if (!match) return output + sql.slice(cursor)
+    output += sql.slice(cursor, match.index)
+    const openIndex = matcher.lastIndex - 1
+    let depth = 1
+    let quote: "'" | '"' | '`' | undefined
+    let closeIndex = openIndex + 1
+    for (; closeIndex < sql.length; closeIndex += 1) {
+      const character = sql[closeIndex]
+      const next = sql[closeIndex + 1]
+      if (quote) {
+        if (character === quote && next === quote) closeIndex += 1
+        else if (character === quote) quote = undefined
+        continue
+      }
+      if (character === "'" || character === '"' || character === '`') quote = character
+      else if (character === '(') depth += 1
+      else if (character === ')' && --depth === 0) break
+    }
+    if (depth !== 0) return output + sql.slice(match.index)
+    const args = splitFunctionArguments(sql.slice(openIndex + 1, closeIndex))
+    output += `(${args.map((argument) => translateConcatExpressions(argument.trim())).join(' || ')})`
+    cursor = closeIndex + 1
+  }
+  return output
+}
+
+function splitFunctionArguments(value: string) {
+  const args: string[] = []
+  let start = 0
+  let depth = 0
+  let quote: "'" | '"' | '`' | undefined
+  for (let index = 0; index < value.length; index += 1) {
+    const character = value[index]
+    const next = value[index + 1]
+    if (quote) {
+      if (character === quote && next === quote) index += 1
+      else if (character === quote) quote = undefined
+      continue
+    }
+    if (character === "'" || character === '"' || character === '`') quote = character
+    else if (character === '(') depth += 1
+    else if (character === ')') depth -= 1
+    else if (character === ',' && depth === 0) {
+      args.push(value.slice(start, index))
+      start = index + 1
+    }
+  }
+  args.push(value.slice(start))
+  return args
 }
 
 function translateMySqlDivision(sql: string) {
@@ -143,10 +215,10 @@ function inferSqliteType(values: CellValue[]) {
   return 'TEXT'
 }
 
-function createProblemDatabase(SQL: SqlJsStatic, problem: SqlProblem) {
+function createDatabase(SQL: SqlJsStatic, tables: DataTable[]) {
   const database = new SQL.Database()
 
-  for (const table of problem.tables) {
+  for (const table of tables) {
     const columnDefinitions = table.columns.map((column, index) => {
       const values = table.rows.map((row) => row[index])
       return `${quoteIdentifier(column)} ${inferSqliteType(values)}`
@@ -259,7 +331,7 @@ export async function runSql(problem: SqlProblem, sql: string): Promise<RunResul
   let database: Database | undefined
   try {
     const SQL = await getEngine()
-    database = createProblemDatabase(SQL, problem)
+    database = createDatabase(SQL, problem.tables)
     const actualResult = resultFromDatabase(database, sql)
     const normalized = normalizeSql(sql)
     const missing = problem.validationTokens.filter((token) => !conceptPresent(normalized, token))
@@ -289,6 +361,42 @@ export async function runSql(problem: SqlProblem, sql: string): Promise<RunResul
       message: '通过！SQL 已真实执行，字段、行数和每个结果值均正确。',
       missingConcepts: [],
       table: actualResult,
+      durationMs: Math.max(1, Math.round(performance.now() - startedAt)),
+    }
+  } catch (error) {
+    return {
+      status: 'error',
+      message: databaseErrorMessage(error),
+      missingConcepts: [],
+      durationMs: Math.max(1, Math.round(performance.now() - startedAt)),
+    }
+  } finally {
+    database?.close()
+  }
+}
+
+export async function runPlaygroundSql(tables: DataTable[], sql: string): Promise<RunResult> {
+  const startedAt = performance.now()
+  const readOnlyError = validateReadOnlyQuery(sql)
+  if (readOnlyError) {
+    return {
+      status: 'error',
+      message: readOnlyError,
+      missingConcepts: [],
+      durationMs: Math.max(1, Math.round(performance.now() - startedAt)),
+    }
+  }
+
+  let database: Database | undefined
+  try {
+    const SQL = await getEngine()
+    database = createDatabase(SQL, tables)
+    const table = resultFromDatabase(database, sql)
+    return {
+      status: 'success',
+      message: `SQL 已真实执行，返回 ${table.rows.length} 行、${table.columns.length} 列。`,
+      missingConcepts: [],
+      table,
       durationMs: Math.max(1, Math.round(performance.now() - startedAt)),
     }
   } catch (error) {

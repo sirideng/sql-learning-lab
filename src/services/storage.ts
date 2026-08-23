@@ -1,8 +1,9 @@
-import type { ProblemProgress, ProgressMap } from '../types/problem'
+import type { ProblemProgress, ProgressMap, ProjectProgressMap } from '../types/problem'
 
 const STORAGE_KEY = 'sql-learning-lab:progress:v1'
 const ACTIVITY_KEY = 'sql-learning-lab:activity:v1'
 const LESSONS_KEY = 'sql-learning-lab:lessons:v1'
+const PROJECTS_KEY = 'sql-learning-lab:projects:v1'
 
 const emptyProgress = (): ProblemProgress => ({
   completed: false,
@@ -40,6 +41,7 @@ export function clearProgress(): ProgressMap {
   localStorage.removeItem(STORAGE_KEY)
   localStorage.removeItem(ACTIVITY_KEY)
   localStorage.removeItem(LESSONS_KEY)
+  localStorage.removeItem(PROJECTS_KEY)
   return {}
 }
 
@@ -69,5 +71,21 @@ export function loadCompletedLessons(): string[] {
 export function toggleCompletedLesson(current: string[], id: string): string[] {
   const next = current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
   localStorage.setItem(LESSONS_KEY, JSON.stringify(next))
+  return next
+}
+
+export function loadProjectProgress(): ProjectProgressMap {
+  try {
+    return JSON.parse(localStorage.getItem(PROJECTS_KEY) ?? '{}') as ProjectProgressMap
+  } catch {
+    return {}
+  }
+}
+
+export function toggleProjectStep(current: ProjectProgressMap, projectId: string, stepId: string): ProjectProgressMap {
+  const completed = current[projectId] ?? []
+  const nextSteps = completed.includes(stepId) ? completed.filter((item) => item !== stepId) : [...completed, stepId]
+  const next = { ...current, [projectId]: nextSteps }
+  localStorage.setItem(PROJECTS_KEY, JSON.stringify(next))
   return next
 }
