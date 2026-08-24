@@ -77,7 +77,7 @@
     "theory": ["窗口函数不会像 GROUP BY 一样减少行数。", "PARTITION BY 决定分区，ORDER BY 决定分区内顺序。", "ROWS 子句明确当前行能看到哪些行。"],
     "pandasBridge": "groupby().transform()、rank()、rolling() 与 SQL 窗口函数思路相近。",
     "sqlExample": "SELECT date, profit,\n  SUM(profit) OVER (ORDER BY date\n    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_profit\nFROM daily_profits;",
-    "takeaways": ["结果仍保持原粒度", "窗口范围随当前行变化", "排序是累计计算的前提"], "practiceIds": ["daily-cumulative-profit", "customer-spend-rank", "moving-average-7d", "regional-user-spend-rank", "monthly-cumulative-sales"]
+    "takeaways": ["结果仍保持原粒度", "窗口范围随当前行变化", "排序是累计计算的前提"], "practiceIds": ["order-count-window", "department-average-salary-window", "event-row-number", "user-order-sequence", "previous-day-sales", "daily-cumulative-profit", "customer-spend-rank", "moving-average-7d", "regional-user-spend-rank", "monthly-cumulative-sales"]
   },
   {
     "id": "analytics-project", "order": 11, "title": "综合分析", "subtitle": "从业务问题到可解释 SQL", "visualType": "project",

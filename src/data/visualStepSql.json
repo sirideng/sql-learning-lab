@@ -1,0 +1,91 @@
+{
+  "sql-foundations": [
+    "SELECT\n  order_id,\n  COUNT(*) AS row_count\nFROM orders\nGROUP BY order_id;",
+    "SELECT\n  order_id,\n  amount\nFROM orders;"
+  ],
+  "select": [
+    "SELECT\n  customer_id,\n  amount\nFROM orders;",
+    "SELECT\n  customer_id,\n  amount,\n  amount * 0.9 AS discounted_amount\nFROM orders;"
+  ],
+  "where-order": [
+    "SELECT\n  order_id,\n  status = 'paid' AS status_ok,\n  amount >= 100 AS amount_ok,\n  paid_at IS NOT NULL AS date_ok,\n  status = 'paid'\n    AND amount >= 100\n    AND paid_at IS NOT NULL AS keep_row\nFROM orders;",
+    "SELECT\n  order_id,\n  amount,\n  paid_at\nFROM orders\nWHERE status = 'paid'\n  AND amount >= 100\n  AND paid_at IS NOT NULL;",
+    "SELECT\n  order_id,\n  amount,\n  paid_at\nFROM orders\nWHERE status = 'paid'\n  AND amount >= 100\n  AND paid_at IS NOT NULL\nORDER BY amount DESC;"
+  ],
+  "aggregate": [
+    "SELECT\n  amount,\n  coupon_code\nFROM orders;",
+    "SELECT\n  COUNT(*) AS order_count,\n  COUNT(coupon_code) AS coupon_order_count,\n  SUM(amount) AS total_amount,\n  AVG(amount) AS avg_amount\nFROM orders;"
+  ],
+  "group-by": [
+    "SELECT\n  order_id,\n  customer_id,\n  amount\nFROM orders;",
+    "SELECT\n  customer_id,\n  GROUP_CONCAT(order_id ORDER BY order_id) AS order_ids,\n  GROUP_CONCAT(amount ORDER BY order_id) AS amount_values\nFROM orders\nGROUP BY customer_id;",
+    "SELECT\n  customer_id,\n  COUNT(*) AS order_count,\n  SUM(amount) AS total_amount\nFROM orders\nGROUP BY customer_id;"
+  ],
+  "having": [
+    "SELECT\n  city,\n  amount,\n  status\nFROM orders\nWHERE status = 'paid';",
+    "SELECT\n  city,\n  GROUP_CONCAT(amount ORDER BY amount) AS amount_values\nFROM orders\nWHERE status = 'paid'\nGROUP BY city;",
+    "SELECT\n  city,\n  AVG(amount) AS avg_amount\nFROM orders\nWHERE status = 'paid'\nGROUP BY city;",
+    "SELECT\n  city,\n  AVG(amount) AS avg_amount\nFROM orders\nWHERE status = 'paid'\nGROUP BY city\nHAVING AVG(amount) >= 150;"
+  ],
+  "join": [
+    "SELECT\n  u.user_id,\n  u.user_name\nFROM users AS u;",
+    "SELECT\n  o.order_id,\n  o.user_id,\n  o.amount\nFROM orders AS o;",
+    "SELECT\n  u.user_id,\n  GROUP_CONCAT(o.order_id ORDER BY o.order_id) AS matched_order_ids,\n  COUNT(o.order_id) AS matched_rows\nFROM users AS u\nLEFT JOIN orders AS o\n  ON u.user_id = o.user_id\nGROUP BY u.user_id;",
+    "SELECT\n  u.user_id,\n  u.user_name,\n  o.order_id,\n  o.amount\nFROM users AS u\nLEFT JOIN orders AS o\n  ON u.user_id = o.user_id\nORDER BY u.user_id, o.order_id;"
+  ],
+  "subquery": [
+    "SELECT\n  AVG(amount) AS avg_amount\nFROM orders;",
+    "SELECT\n  order_id,\n  amount\nFROM orders\nWHERE amount > (\n  SELECT AVG(amount)\n  FROM orders\n);"
+  ],
+  "case-when": [
+    "SELECT\n  user_id,\n  total_spend\nFROM users;",
+    "SELECT\n  user_id,\n  total_spend,\n  CASE\n    WHEN total_spend >= 500 THEN '第一个 WHEN'\n    WHEN total_spend >= 200 THEN '第二个 WHEN'\n    ELSE 'ELSE'\n  END AS matched_branch\nFROM users;",
+    "SELECT\n  user_id,\n  total_spend,\n  CASE\n    WHEN total_spend >= 500 THEN '高价值'\n    WHEN total_spend >= 200 THEN '中价值'\n    ELSE '低价值'\n  END AS value_segment\nFROM users;"
+  ],
+  "window": [
+    "SELECT\n  ROW_NUMBER() OVER (ORDER BY sale_date) AS row_num,\n  sale_date,\n  sales\nFROM daily_sales;",
+    "SELECT\n  sale_date,\n  sales,\n  SUM(sales) OVER (\n    ORDER BY sale_date\n    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n  ) AS window_sum\nFROM daily_sales;",
+    "SELECT\n  sale_date,\n  sales,\n  SUM(sales) OVER (\n    ORDER BY sale_date\n    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n  ) AS cumulative_sales\nFROM daily_sales;"
+  ],
+  "analytics-project": [
+    "WITH valid_orders AS (\n  SELECT order_id, user_id, amount\n  FROM orders\n  WHERE status = 'paid'\n)\nSELECT *\nFROM valid_orders;",
+    "WITH valid_orders AS (\n  SELECT order_id, user_id, amount\n  FROM orders\n  WHERE status = 'paid'\n),\nuser_metrics AS (\n  SELECT\n    user_id,\n    COUNT(*) AS order_count,\n    SUM(amount) AS total_spend\n  FROM valid_orders\n  GROUP BY user_id\n)\nSELECT *\nFROM user_metrics;",
+    "WITH valid_orders AS (\n  SELECT order_id, user_id, amount\n  FROM orders\n  WHERE status = 'paid'\n),\nuser_metrics AS (\n  SELECT user_id, COUNT(*) AS order_count, SUM(amount) AS total_spend\n  FROM valid_orders\n  GROUP BY user_id\n)\nSELECT\n  m.user_id,\n  u.city,\n  m.order_count,\n  m.total_spend,\n  CASE WHEN m.order_count >= 2 THEN '复购' ELSE '单次购买' END AS segment\nFROM user_metrics AS m\nJOIN users AS u\n  ON m.user_id = u.user_id;"
+  ],
+  "date-functions": [
+    "SELECT\n  order_id,\n  order_date,\n  DATE_FORMAT(order_date, '%Y-%m') AS sale_month,\n  amount\nFROM orders;",
+    "SELECT\n  DATE_FORMAT(order_date, '%Y-%m') AS sale_month,\n  GROUP_CONCAT(amount ORDER BY order_date) AS amount_values\nFROM orders\nGROUP BY DATE_FORMAT(order_date, '%Y-%m');",
+    "SELECT\n  DATE_FORMAT(order_date, '%Y-%m') AS sale_month,\n  SUM(amount) AS monthly_sales\nFROM orders\nGROUP BY DATE_FORMAT(order_date, '%Y-%m')\nORDER BY sale_month;"
+  ],
+  "string-functions": [
+    "SELECT\n  user_id,\n  LOWER(email) AS clean_email\nFROM users;",
+    "SELECT\n  user_id,\n  SUBSTRING(LOWER(email), INSTR(email, '@') + 1) AS email_domain,\n  LENGTH(phone) AS phone_length\nFROM users;",
+    "SELECT\n  user_id,\n  SUBSTRING(LOWER(email), INSTR(email, '@') + 1) AS email_domain,\n  CONCAT(SUBSTRING(phone, 1, 3), '****', SUBSTRING(phone, -4)) AS masked_phone\nFROM users;"
+  ],
+  "cte": [
+    "SELECT\n  user_id,\n  SUM(amount) AS total_spend\nFROM (\n  SELECT user_id, amount\n  FROM orders\n  WHERE status = 'paid'\n) AS valid_orders\nGROUP BY user_id;",
+    "WITH valid_orders AS (\n  SELECT order_id, user_id, amount\n  FROM orders\n  WHERE status = 'paid'\n)\nSELECT *\nFROM valid_orders;",
+    "WITH valid_orders AS (\n  SELECT order_id, user_id, amount\n  FROM orders\n  WHERE status = 'paid'\n),\nuser_spend AS (\n  SELECT user_id, SUM(amount) AS total_spend\n  FROM valid_orders\n  GROUP BY user_id\n)\nSELECT *\nFROM user_spend;"
+  ],
+  "analytics-cases": [
+    "WITH paid_orders AS (\n  SELECT order_id, user_id, amount\n  FROM orders\n  WHERE status = 'paid'\n)\nSELECT *\nFROM paid_orders;",
+    "WITH paid_orders AS (\n  SELECT order_id, user_id, amount\n  FROM orders\n  WHERE status = 'paid'\n)\nSELECT\n  COUNT(DISTINCT user_id) AS buyers,\n  SUM(amount) AS gmv,\n  COUNT(*) AS order_count\nFROM paid_orders;",
+    "WITH paid_orders AS (\n  SELECT order_id, user_id, amount\n  FROM orders\n  WHERE status = 'paid'\n),\nbuyer_orders AS (\n  SELECT user_id, COUNT(*) AS order_count\n  FROM paid_orders\n  GROUP BY user_id\n)\nSELECT\n  (SELECT SUM(amount) / COUNT(*) FROM paid_orders) AS aov,\n  SUM(CASE WHEN order_count >= 2 THEN 1 ELSE 0 END) / COUNT(*) AS repeat_buyer_rate\nFROM buyer_orders;"
+  ],
+  "performance-basics": [
+    "SELECT\n  order_id,\n  user_id,\n  order_date,\n  amount,\n  status\nFROM orders;",
+    "SELECT\n  order_id,\n  user_id,\n  amount\nFROM orders\nWHERE status = 'paid'\n  AND order_date >= '2024-01-01';",
+    "SELECT\n  order_id,\n  user_id,\n  amount\nFROM orders\nWHERE status = 'paid'\n  AND order_date >= '2024-01-01';"
+  ],
+  "sql-pandas": [
+    "SELECT\n  order_id,\n  user_id,\n  city,\n  amount\nFROM orders\nWHERE status = 'paid';",
+    "SELECT\n  city,\n  GROUP_CONCAT(order_id ORDER BY order_id) AS order_ids,\n  GROUP_CONCAT(amount ORDER BY order_id) AS amount_values\nFROM orders\nWHERE status = 'paid'\nGROUP BY city;",
+    "SELECT\n  city,\n  COUNT(*) AS order_count,\n  SUM(amount) AS gmv\nFROM orders\nWHERE status = 'paid'\nGROUP BY city\nORDER BY gmv DESC;"
+  ],
+  "project-lab": [
+    "SELECT\n  'users' AS table_name,\n  COUNT(*) AS row_count,\n  SUM(user_id IS NULL) AS null_key_count,\n  MIN(register_date) AS min_date,\n  MAX(register_date) AS max_date\nFROM users\nUNION ALL\nSELECT\n  'orders', COUNT(*), SUM(order_id IS NULL), MIN(order_date), MAX(order_date)\nFROM orders;",
+    "SELECT\n  o.order_id,\n  o.user_id,\n  u.city,\n  o.order_date,\n  o.amount\nFROM orders AS o\nJOIN users AS u\n  ON o.user_id = u.user_id\nWHERE o.status = 'paid';",
+    "WITH clean_order_detail AS (\n  SELECT o.order_id, o.user_id, u.city, o.order_date, o.amount\n  FROM orders AS o\n  JOIN users AS u ON o.user_id = u.user_id\n  WHERE o.status = 'paid'\n)\nSELECT\n  user_id,\n  city,\n  COUNT(*) AS order_count,\n  SUM(amount) AS total_spend\nFROM clean_order_detail\nGROUP BY user_id, city;",
+    "WITH clean_order_detail AS (\n  SELECT o.order_id, o.user_id, u.city, o.amount\n  FROM orders AS o\n  JOIN users AS u ON o.user_id = u.user_id\n  WHERE o.status = 'paid'\n),\nuser_metrics AS (\n  SELECT user_id, city, COUNT(*) AS order_count, SUM(amount) AS total_spend\n  FROM clean_order_detail\n  GROUP BY user_id, city\n)\nSELECT\n  city,\n  COUNT(*) AS buyers,\n  SUM(total_spend) AS gmv,\n  AVG(total_spend) AS avg_spend,\n  SUM(CASE WHEN order_count >= 2 THEN 1 ELSE 0 END) AS repeat_buyers\nFROM user_metrics\nGROUP BY city;"
+  ]
+}

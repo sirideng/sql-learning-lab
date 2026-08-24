@@ -6,6 +6,7 @@ import {
   Braces,
   CheckCircle2,
   Circle,
+  Code2,
   Layers3,
   Lightbulb,
   ListChecks,
@@ -19,6 +20,7 @@ import { AnalyticsCaseStudies, ExecutionOrderVisualizer, ProjectLabModule, SqlEx
 import { CodeBlock } from '../components/CodeBlock'
 import { ConceptVisualizer } from '../components/ConceptVisualizer'
 import { DataTableView } from '../components/DataTableView'
+import visualStepSql from '../data/visualStepSql.json'
 import type { LearningChapter, ProjectProgressMap } from '../types/problem'
 
 interface LearningPathPageProps {
@@ -73,7 +75,11 @@ export function LearningPathPage({ chapters, completedLessons, completedProblems
         <LessonSection number="04" icon={<Workflow size={19} />} title="SQL 执行过程可视化" className="visual-lesson-section deep-visual-section">
           <ConceptVisualizer type={chapter.visualType} />
           {lesson.sqlExamples && <SqlExampleGallery examples={lesson.sqlExamples} />}
-          <div className="execution-step-list">{lesson.demo.steps.map((step, index) => <div className="execution-step-wrap" key={step.title}>{index > 0 && <div className="execution-flow-arrow"><ArrowDown size={20} /></div>}<article className="execution-step-card"><div className="execution-step-heading"><span>{String(index + 1).padStart(2, '0')}</span><div><small>EXECUTION STEP</small><h4>{step.title}</h4></div></div><p>{step.description}</p><DataTableView table={step.table} /></article></div>)}</div>
+          <div className="execution-step-list">{lesson.demo.steps.map((step, index) => {
+            const chapterStepSql = visualStepSql[chapter.id as keyof typeof visualStepSql]
+            const sql = chapterStepSql?.[index] ?? chapter.sqlExample
+            return <div className="execution-step-wrap" key={step.title}>{index > 0 && <div className="execution-flow-arrow"><ArrowDown size={20} /></div>}<article className="execution-step-card"><div className="execution-step-heading"><span>{String(index + 1).padStart(2, '0')}</span><div><small>EXECUTION STEP</small><h4>{step.title}</h4></div></div><p>{step.description}</p><div className="execution-step-code"><div className="execution-step-code-label"><Code2 size={17} /><span>本步执行 SQL</span><small>下方中间表由这段代码产生</small></div><CodeBlock code={sql} tables={lesson.demo.originalTables} language="sql" /></div><DataTableView table={step.table} /></article></div>
+          })}</div>
           <div className="lesson-final-result"><div><CheckCircle2 size={20} /><span><strong>最终结果表</strong><small>检查字段、粒度和每个结果值</small></span></div><DataTableView table={lesson.demo.finalTable} /></div>
           {lesson.executionOrder && <ExecutionOrderVisualizer stages={lesson.executionOrder} />}
           {lesson.caseStudies && <AnalyticsCaseStudies cases={lesson.caseStudies} />}
@@ -86,7 +92,7 @@ export function LearningPathPage({ chapters, completedLessons, completedProblems
         </LessonSection>
 
         <LessonSection number="06" icon={<Braces size={19} />} title="SQL 与 Pandas 对应">
-          <div className="comparison-grid"><article><span className="comparison-label sql">SQL</span><CodeBlock code={lesson.pandasComparison.sql} /></article><article><span className="comparison-label pandas">Pandas</span><CodeBlock code={lesson.pandasComparison.pandas} /></article></div>
+          <div className="comparison-grid"><article><span className="comparison-label sql">SQL</span><CodeBlock code={lesson.pandasComparison.sql} language="sql" /></article><article><span className="comparison-label pandas">Pandas</span><CodeBlock code={lesson.pandasComparison.pandas} language="python" /></article></div>
           <div className="comparison-note"><Braces size={18} /><p>{lesson.pandasComparison.explanation}</p></div>
         </LessonSection>
 

@@ -10,6 +10,7 @@ const readJson = (relativePath) => JSON.parse(fs.readFileSync(path.join(projectR
 const coreProblems = readJson('src/data/problems.json')
 const additionalProblems = readJson('src/data/additionalQuestions.json')
 const careerProblems = readJson('src/data/careerQuestions.json')
+const windowPracticeProblems = readJson('src/data/windowPracticeQuestions.json')
 const learningPath = readJson('src/data/learningPath.json')
 
 const legacyMetadata = {
@@ -18,13 +19,14 @@ const legacyMetadata = {
   'products-sold-only-in-spring': { source: 'LeetCode · 经典', chapter: 'HAVING' },
   'manager-direct-reports': { source: 'LeetCode · 经典', chapter: 'JOIN' },
   'customers-who-bought-all-products': { source: 'LeetCode · 经典', chapter: 'Subquery' },
-  'daily-cumulative-profit': { source: 'SQL Learning Lab', chapter: 'Window Function' },
+  'daily-cumulative-profit': { source: 'SQL Learning Lab', chapter: '窗口函数' },
 }
 
 const problems = [
   ...coreProblems.map((problem) => ({ ...problem, ...legacyMetadata[problem.id] })),
   ...additionalProblems,
   ...careerProblems,
+  ...windowPracticeProblems,
 ]
 const errors = []
 const fail = (message) => errors.push(message)
@@ -59,6 +61,15 @@ for (const problem of careerProblems) {
   if (problem.visualizationSteps.length < 2) fail(`${problem.id} 的 visualizationSteps 少于 2 步`)
   if (!problem.visualizationSteps.every((step) => step.table?.columns?.length && Array.isArray(step.table.rows))) fail(`${problem.id} 存在没有中间表的 visualizationSteps`)
 }
+for (const problem of windowPracticeProblems) {
+  for (const field of requiredCareerFields) {
+    if (problem[field] === undefined || problem[field] === null || problem[field] === '') fail(`${problem.id} 缺少字段 ${field}`)
+  }
+  if (problem.chapter !== '窗口函数') fail(`${problem.id} 未归入统一的窗口函数章节`)
+  if (!problem.tables.every((table) => Array.isArray(table.rows) && table.rows.length > 0)) fail(`${problem.id} 缺少 sample data`)
+  if (problem.visualizationSteps.length < 3) fail(`${problem.id} 的 visualizationSteps 少于 3 步`)
+  if (!problem.visualizationSteps.every((step) => step.sql && step.table?.columns?.length && Array.isArray(step.table.rows))) fail(`${problem.id} 存在没有代码或中间表的 visualizationSteps`)
+}
 
 const referencedPracticeIds = new Set(learningPath.flatMap((chapter) => chapter.practiceIds))
 for (const practiceId of referencedPracticeIds) {
@@ -67,11 +78,21 @@ for (const practiceId of referencedPracticeIds) {
 for (const problem of careerProblems) {
   if (!referencedPracticeIds.has(problem.id)) fail(`新增题目未加入学习路线：${problem.id}`)
 }
+for (const problem of windowPracticeProblems) {
+  if (!referencedPracticeIds.has(problem.id)) fail(`窗口函数基础题未加入学习路线：${problem.id}`)
+}
 
 const difficultyCounts = Object.fromEntries(['简单', '中等', '困难'].map((difficulty) => [difficulty, careerProblems.filter((problem) => problem.difficulty === difficulty).length]))
 if (careerProblems.length !== 30) fail(`新增题目数量应为 30，当前为 ${careerProblems.length}`)
 if (difficultyCounts['简单'] !== 10 || difficultyCounts['中等'] !== 18 || difficultyCounts['困难'] !== 2) {
   fail(`新增题目难度分布错误：${JSON.stringify(difficultyCounts)}`)
+}
+const windowDifficultyCounts = Object.fromEntries(['简单', '中等', '困难'].map((difficulty) => [difficulty, windowPracticeProblems.filter((problem) => problem.difficulty === difficulty).length]))
+if (windowPracticeProblems.length !== 5 || windowDifficultyCounts['简单'] !== 3 || windowDifficultyCounts['中等'] !== 2 || windowDifficultyCounts['困难'] !== 0) {
+  fail(`窗口函数基础题难度分布错误：${JSON.stringify(windowDifficultyCounts)}`)
+}
+for (const problem of problems.filter((item) => item.tags?.includes('Window Function'))) {
+  if (problem.chapter !== '窗口函数') fail(`${problem.id} 的窗口函数章节名称未统一`)
 }
 
 function quoteIdentifier(identifier) {
@@ -193,7 +214,7 @@ function compareResult(actual, expected, ordered) {
 }
 
 const SQL = await initSqlJs()
-for (const problem of careerProblems) {
+for (const problem of [...careerProblems, ...windowPracticeProblems]) {
   let database
   try {
     database = createDatabase(SQL, problem)
@@ -220,3 +241,4 @@ if (errors.length > 0) {
 console.log(`题库校验通过：共 ${problems.length} 题，新增 ${careerProblems.length} 题。`)
 console.log(`新增难度分布：简单 ${difficultyCounts['简单']}，中等 ${difficultyCounts['中等']}，困难 ${difficultyCounts['困难']}。`)
 console.log('新增 30 题的标准答案均已真实执行，并与 expectedResult 完全一致。')
+console.log(`窗口函数新增练手题：简单 ${windowDifficultyCounts['简单']}，中等 ${windowDifficultyCounts['中等']}；标准答案均已真实执行。`)

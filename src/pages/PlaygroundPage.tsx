@@ -1,7 +1,9 @@
 import { CheckCircle2, Database, Play, RotateCcw, Sparkles, XCircle } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { AppHeader, type AppSection } from '../components/AppHeader'
 import { DataTableView } from '../components/DataTableView'
+import { SyntaxHighlightedCode } from '../components/SyntaxHighlightedCode'
+import { getEditorPairEdit } from '../services/editorPairs'
 import { runPlaygroundSql, type RunResult } from '../services/sqlRunner'
 import type { DataTable, PlaygroundScenario } from '../types/problem'
 
@@ -32,6 +34,9 @@ export function PlaygroundPage({ scenarios, completed, total, onNavigateSection 
   const [result, setResult] = useState<RunResult | null>(null)
   const [isRunning, setIsRunning] = useState(false)
   const lines = useMemo(() => sql.split('\n'), [sql])
+  const highlightRef = useRef<HTMLPreElement | null>(null)
+  const lineNumbersRef = useRef<HTMLDivElement | null>(null)
+  const editorRef = useRef<HTMLTextAreaElement | null>(null)
 
   const choose = (item: PlaygroundScenario) => {
     setSelectedId(item.id)
@@ -49,6 +54,20 @@ export function PlaygroundPage({ scenarios, completed, total, onNavigateSection 
     }
   }
 
+  const onEditorKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    const target = event.currentTarget
+    const pairEdit = getEditorPairEdit(sql, target.selectionStart, target.selectionEnd, event.key)
+    if (!pairEdit) return
+    event.preventDefault()
+    setSql(pairEdit.value)
+    setResult(null)
+    requestAnimationFrame(() => {
+      target.focus()
+      target.selectionStart = pairEdit.selectionStart
+      target.selectionEnd = pairEdit.selectionEnd
+    })
+  }
+
   return <div className="playground-page">
     <AppHeader completed={completed} total={total} currentSection="playground" onNavigateSection={onNavigateSection} onHome={() => onNavigateSection('dashboard')} />
     <main className="playground-main">
@@ -59,7 +78,27 @@ export function PlaygroundPage({ scenarios, completed, total, onNavigateSection 
           <div className="workspace-panel-title"><div><strong>实验 SQL</strong></div><span>MySQL 8.0</span></div>
           <div className="editor-shell">
             <div className="editor-chrome"><span /><span /><span /><small>playground.sql</small></div>
-            <div className="editor-body"><div className="line-numbers">{lines.map((_, index) => <span key={index}>{index + 1}</span>)}</div><textarea value={sql} onChange={(event) => { setSql(event.target.value); setResult(null) }} spellCheck={false} /></div>
+            <div className="editor-body">
+              <div ref={lineNumbersRef} className="line-numbers">{lines.map((_, index) => <span key={index}>{index + 1}</span>)}</div>
+              <div className="editor-code-area">
+                <pre ref={highlightRef} className="sql-highlight-layer" aria-hidden="true"><SyntaxHighlightedCode code={sql} tables={playgroundTables} language="sql" /></pre>
+                <textarea
+                  ref={editorRef}
+                  value={sql}
+                  onChange={(event) => { setSql(event.target.value); setResult(null) }}
+                  onKeyDown={onEditorKeyDown}
+                  onScroll={(event) => {
+                    if (highlightRef.current) {
+                      highlightRef.current.scrollTop = event.currentTarget.scrollTop
+                      highlightRef.current.scrollLeft = event.currentTarget.scrollLeft
+                    }
+                    if (lineNumbersRef.current) lineNumbersRef.current.scrollTop = event.currentTarget.scrollTop
+                  }}
+                  spellCheck={false}
+                  aria-label="Playground SQL 编辑器"
+                />
+              </div>
+            </div>
           </div>
           <div className="playground-actions"><button className="secondary-button" onClick={() => { setSql(scenario.sql); setResult(null) }}><RotateCcw size={16} /> 重置</button><button className="run-button" onClick={run} disabled={isRunning}><Play size={17} fill="currentColor" /> {isRunning ? '正在运行…' : '运行实验'}</button></div>
         </section>

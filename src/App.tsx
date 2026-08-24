@@ -5,6 +5,7 @@ import chapterDeepDiveData from './data/chapterDeepDives.json'
 import learningData from './data/learningPath.json'
 import playgroundData from './data/playgroundScenarios.json'
 import problemData from './data/problems.json'
+import windowPracticeData from './data/windowPracticeQuestions.json'
 import { useProgress } from './hooks/useProgress'
 import { DashboardPage } from './pages/DashboardPage'
 import { HomePage } from './pages/HomePage'
@@ -19,13 +20,15 @@ const legacyMetadata: Record<string, { source: string; chapter: string }> = {
   'products-sold-only-in-spring': { source: 'LeetCode · 经典', chapter: 'HAVING' },
   'manager-direct-reports': { source: 'LeetCode · 经典', chapter: 'JOIN' },
   'customers-who-bought-all-products': { source: 'LeetCode · 经典', chapter: 'Subquery' },
-  'daily-cumulative-profit': { source: 'SQL Learning Lab', chapter: 'Window Function' },
+  'daily-cumulative-profit': { source: 'SQL Learning Lab', chapter: '窗口函数' },
 }
 
 const problems = [
   ...(problemData as Omit<SqlProblem, 'source' | 'chapter'>[]).map((problem) => ({ ...problem, ...legacyMetadata[problem.id] })),
   ...(additionalProblemData as SqlProblem[]),
   ...(careerProblemData as (Omit<SqlProblem, 'explanationSteps'> & { visualizationSteps: ExplanationStep[] })[])
+    .map((problem) => ({ ...problem, explanationSteps: problem.visualizationSteps })),
+  ...(windowPracticeData as (Omit<SqlProblem, 'explanationSteps'> & { visualizationSteps: ExplanationStep[] })[])
     .map((problem) => ({ ...problem, explanationSteps: problem.visualizationSteps })),
 ] as SqlProblem[]
 const chapterDeepDives = Object.fromEntries((chapterDeepDiveData as ChapterDeepDive[]).map((item) => [item.id, item]))
@@ -38,7 +41,7 @@ function currentHash() {
 
 export default function App() {
   const [route, setRoute] = useState(() => currentHash())
-  const { progress, activityDays, completedLessons, projectProgress, saveDraft, recordAttempt, toggleLesson, toggleProject, reset } = useProgress()
+  const { progress, activity, completedLessons, projectProgress, saveDraft, recordAttempt, toggleLesson, toggleProject, reset } = useProgress()
 
   useEffect(() => {
     const syncRoute = () => setRoute(currentHash())
@@ -95,5 +98,5 @@ export default function App() {
     return <HomePage problems={problems} progress={progress} onOpen={openProblem} onReset={reset} libraryOnly onNavigateSection={navigateSection} />
   }
 
-  return <DashboardPage problems={problems} chapters={chapters} progress={progress} activityDays={activityDays} completedLessons={completedLessons} projectProgress={projectProgress} onOpen={openProblem} onReset={reset} onNavigateSection={navigateSection} />
+  return <DashboardPage problems={problems} chapters={chapters} progress={progress} activity={activity} completedLessons={completedLessons} projectProgress={projectProgress} onOpen={openProblem} onReset={reset} onNavigateSection={navigateSection} />
 }

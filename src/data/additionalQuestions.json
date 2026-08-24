@@ -99,7 +99,7 @@
     "explanationSteps":[{"title":"先清除取消订单","goal":"确保收入口径只包含已支付订单。","detail":"WHERE 在分组前移除 order_id 2。","table":{"name":"WHERE 后","columns":["order_id","order_date","amount","status"],"rows":[[1,"2024-01-10",100,"paid"],[3,"2024-02-02",150,"paid"],[4,"2024-02-18",120,"paid"],[5,"2024-03-01",90,"paid"]]}},{"title":"转换月份并聚合","goal":"把订单粒度转换为月份粒度。","detail":"2 月的两笔订单合计 270。","table":{"name":"GROUP BY 后","columns":["month","revenue","order_count"],"rows":[["2024-01",100,1],["2024-02",270,2],["2024-03",90,1]]}}]
   },
   {
-    "id":"customer-spend-rank","number":18,"title":"客户消费排名","source":"Wonderful SQL · 改编","chapter":"Window Function","difficulty":"中等","tags":["Window Function","RANK","SUM"],
+    "id":"customer-spend-rank","number":18,"title":"客户消费排名","source":"Wonderful SQL · 改编","chapter":"窗口函数","difficulty":"中等","tags":["Window Function","RANK","SUM"],
     "description":"计算每位客户总消费，并按总消费从高到低排名。","challenge":"并列金额使用相同名次，下一名跳号。",
     "tables":[{"name":"orders","columns":["order_id","customer_id","amount"],"rows":[[1,10,100],[2,10,80],[3,11,220],[4,12,180],[5,13,90]]}],
     "hints":["CTE 中先按客户求 SUM(amount)。","外层使用 RANK() OVER (ORDER BY total_amount DESC)。"],"starterSql":"WITH customer_spend AS (\n  SELECT customer_id, SUM(amount) AS total_amount\n  FROM orders\n  GROUP BY customer_id\n)\nSELECT ",
@@ -108,7 +108,7 @@
     "explanationSteps":[{"title":"先得到客户总消费","goal":"把订单粒度转换为客户粒度。","detail":"customer 10 的两笔订单合计 180。","table":{"name":"customer_spend","columns":["customer_id","total_amount"],"rows":[[10,180],[11,220],[12,180],[13,90]]}},{"title":"在客户行上计算排名","goal":"保留每位客户，同时增加排名列。","detail":"180 并列第 2，因此下一位排名为 4。","table":{"name":"窗口计算后","columns":["customer_id","total_amount","spend_rank"],"rows":[[11,220,1],[10,180,2],[12,180,2],[13,90,4]]}}]
   },
   {
-    "id":"moving-average-7d","number":19,"title":"三日移动平均收入","source":"Practical SQL · 改编","chapter":"Window Function","difficulty":"困难","tags":["Window Function","AVG","ROWS"],
+    "id":"moving-average-7d","number":19,"title":"三日移动平均收入","source":"Practical SQL · 改编","chapter":"窗口函数","difficulty":"困难","tags":["Window Function","AVG","ROWS"],
     "description":"计算每天收入以及包含当天在内最近 3 天的移动平均收入。","challenge":"使用明确的 ROWS 窗口范围，结果保留 1 位小数。",
     "tables":[{"name":"daily_revenue","columns":["date","revenue"],"rows":[["2024-01-01",100],["2024-01-02",160],["2024-01-03",220],["2024-01-04",120],["2024-01-05",200]]}],
     "hints":["窗口从 2 PRECEDING 到 CURRENT ROW。","前两天窗口中不足 3 行是正常的。"],"starterSql":"SELECT date, revenue,\n  ROUND(AVG(revenue) OVER (\n    ORDER BY date\n    ROWS BETWEEN ",

@@ -48,6 +48,8 @@ export interface ProblemProgress {
 
 export type ProgressMap = Record<string, ProblemProgress>
 
+export type ActivityMap = Record<string, number>
+
 export type VisualType = 'select' | 'filter' | 'aggregate' | 'group' | 'having' | 'join' | 'subquery' | 'case' | 'window' | 'project' | 'date' | 'string' | 'cte' | 'analytics' | 'performance' | 'pandas' | 'project-lab'
 
 export interface LearningChapter {

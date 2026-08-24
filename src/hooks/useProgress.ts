@@ -15,7 +15,7 @@ import {
 
 export function useProgress() {
   const [progress, setProgress] = useState<ProgressMap>(() => loadProgress())
-  const [activityDays, setActivityDays] = useState<string[]>(() => loadActivity())
+  const [activity, setActivity] = useState(() => loadActivity(progress))
   const [completedLessons, setCompletedLessons] = useState<string[]>(() => loadCompletedLessons())
   const [projectProgress, setProjectProgress] = useState<ProjectProgressMap>(() => loadProjectProgress())
 
@@ -24,7 +24,7 @@ export function useProgress() {
   }, [])
 
   const recordAttempt = useCallback((id: string, correct: boolean, draft: string) => {
-    setActivityDays((current) => recordActivity(current))
+    setActivity((current) => recordActivity(current))
     setProgress((current) => {
       const item = getProblemProgress(current, id)
       return updateProblemProgress(current, id, {
@@ -48,10 +48,10 @@ export function useProgress() {
 
   const reset = useCallback(() => {
     setProgress(clearProgress())
-    setActivityDays([])
+    setActivity({})
     setCompletedLessons([])
     setProjectProgress({})
   }, [])
 
-  return { progress, activityDays, completedLessons, projectProgress, saveDraft, recordAttempt, toggleLesson, toggleProject, reset }
+  return { progress, activity, completedLessons, projectProgress, saveDraft, recordAttempt, toggleLesson, toggleProject, reset }
 }

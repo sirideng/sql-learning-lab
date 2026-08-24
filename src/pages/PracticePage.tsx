@@ -19,7 +19,10 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { AppHeader } from '../components/AppHeader'
 import { DataTableView } from '../components/DataTableView'
 import { ExplanationDrawer } from '../components/ExplanationDrawer'
+import { SyntaxHighlightedCode } from '../components/SyntaxHighlightedCode'
 import { runSql, type RunResult } from '../services/sqlRunner'
+import { formatSql } from '../services/sqlFormatter'
+import { getEditorPairEdit } from '../services/editorPairs'
 import { getProblemProgress } from '../services/storage'
 import type { ProgressMap, SqlProblem } from '../types/problem'
 
@@ -79,7 +82,6 @@ export function PracticePage({
   }, [result])
 
   const lineNumbers = useMemo(() => sql.split('\n').map((_, index) => index + 1), [sql])
-  const highlightedSql = useMemo(() => highlightSql(sql, problem), [problem, sql])
   const currentIdentifier = useMemo(() => getIdentifierAt(sql, cursorPosition), [cursorPosition, sql])
   const autocompleteItems = useMemo(() => {
     const prefix = currentIdentifier.prefix.toLowerCase()
@@ -109,13 +111,28 @@ export function PracticePage({
     const lines = beforeCursor.split('\n')
     const row = lines.length - 1
     const column = lines.at(-1)?.length ?? 0
-    return { top: 20 + row * editorFontSize * 1.75, left: 62 + Math.min(column, 12) * editorFontSize * .6 }
+    const lineHeight = editorFontSize * 1.75
+    return { top: 40 + (row + 1) * lineHeight, left: 62 + Math.min(column, 12) * editorFontSize * .6 }
   }, [cursorPosition, editorFontSize, sql])
   const changeEditorFontSize = (change: number) => {
     setEditorFontSize((current) => {
       const next = Math.max(MIN_EDITOR_FONT_SIZE, Math.min(MAX_EDITOR_FONT_SIZE, current + change))
       window.localStorage.setItem(EDITOR_FONT_STORAGE_KEY, String(next))
       return next
+    })
+  }
+  const formatEditorSql = () => {
+    if (!sql.trim()) {
+      editorRef.current?.focus()
+      return
+    }
+    const formatted = formatSql(sql)
+    editSql(formatted)
+    setCursorPosition(formatted.length)
+    requestAnimationFrame(() => {
+      if (!editorRef.current) return
+      editorRef.current.focus()
+      editorRef.current.selectionStart = editorRef.current.selectionEnd = formatted.length
     })
   }
   const editSql = (value: string) => {
@@ -147,6 +164,19 @@ export function PracticePage({
       execute()
       return
     }
+    const target = event.currentTarget
+    const pairEdit = getEditorPairEdit(sql, target.selectionStart, target.selectionEnd, event.key)
+    if (pairEdit) {
+      event.preventDefault()
+      editSql(pairEdit.value)
+      setCursorPosition(pairEdit.selectionStart)
+      requestAnimationFrame(() => {
+        target.focus()
+        target.selectionStart = pairEdit.selectionStart
+        target.selectionEnd = pairEdit.selectionEnd
+      })
+      return
+    }
     if (autocompleteItems.length > 0 && event.key === 'ArrowDown') {
       event.preventDefault()
       setSuggestionIndex((index) => (index + 1) % autocompleteItems.length)
@@ -169,7 +199,6 @@ export function PracticePage({
     }
     if (event.key === 'Tab') {
       event.preventDefault()
-      const target = event.currentTarget
       const start = target.selectionStart
       const end = target.selectionEnd
       const next = `${sql.slice(0, start)}  ${sql.slice(end)}`
@@ -285,6 +314,7 @@ export function PracticePage({
                 <span>{Math.round(editorFontSize / DEFAULT_EDITOR_FONT_SIZE * 100)}%</span>
                 <button disabled={editorFontSize === MAX_EDITOR_FONT_SIZE} onClick={() => changeEditorFontSize(2)} aria-label="放大编辑器文字"><Plus size={15} /></button>
               </div>
+              <button className="format-sql-button" onClick={formatEditorSql} disabled={!sql.trim()} title="自动整理关键字、换行和缩进"><Sparkles size={15} />一键格式化</button>
               <span className="editor-dialect">MySQL 8.0</span>
             </div>
           </div>
@@ -296,7 +326,7 @@ export function PracticePage({
             <div className="editor-body">
               <div ref={lineNumbersRef} className="line-numbers" aria-hidden="true">{lineNumbers.map((line) => <span key={line}>{line}</span>)}</div>
               <div className="editor-code-area">
-                <pre ref={highlightRef} className="sql-highlight-layer" aria-hidden="true">{highlightedSql}</pre>
+                <pre ref={highlightRef} className="sql-highlight-layer" aria-hidden="true"><SyntaxHighlightedCode code={sql} tables={problem.tables} language="sql" /></pre>
                 <textarea
                   ref={editorRef}
                   value={sql}
@@ -343,7 +373,7 @@ export function PracticePage({
                 )}
               </div>
             </div>
-            <div className="editor-status"><span>Ln {lineNumbers.length}, Col 1</span><span>输入 2 个字符 · Tab 补全 · SQL</span></div>
+            <div className="editor-status"><span>Ln {lineNumbers.length}, Col 1</span><span>输入 2 个字符 · 自动闭合 · Tab 补全 · SQL</span></div>
           </div>
           <div className="editor-actions">
             <button className="secondary-button" onClick={() => editSql('')}><RotateCcw size={16} /> 重置</button>
@@ -408,38 +438,4 @@ function getIdentifierAt(sql: string, cursor: number) {
 function identifierMatches(identifier: string, prefix: string) {
   const normalized = identifier.toLowerCase()
   return normalized.startsWith(prefix) || normalized.split('_').some((part) => part.startsWith(prefix))
-}
-
-const sqlKeywords = new Set([
-  'all', 'and', 'as', 'asc', 'between', 'by', 'case', 'cross', 'delete', 'desc', 'distinct',
-  'else', 'end', 'exists', 'from', 'full', 'group', 'having', 'in', 'inner', 'insert', 'into',
-  'is', 'join', 'left', 'like', 'limit', 'not', 'null', 'offset', 'on', 'or', 'order', 'outer',
-  'over', 'partition', 'right', 'select', 'set', 'then', 'union', 'update', 'values', 'when',
-  'where', 'with',
-])
-
-const sqlFunctions = new Set([
-  'avg', 'coalesce', 'concat', 'count', 'date_add', 'date_format', 'ifnull', 'lag', 'lead',
-  'max', 'min', 'rank', 'round', 'row_number', 'sum',
-])
-
-function highlightSql(sql: string, problem: SqlProblem) {
-  const tables = new Set(problem.tables.map((table) => table.name.toLowerCase()))
-  const columns = new Set(problem.tables.flatMap((table) => table.columns.map((column) => column.toLowerCase())))
-  const parts = sql.match(/--[^\n]*|\/\*[\s\S]*?\*\/|'(?:''|\\.|[^'])*'|"(?:""|\\.|[^"])*"|`(?:``|[^`])*`|\b\d+(?:\.\d+)?\b|\b[A-Za-z_][A-Za-z0-9_$]*\b|\s+|[^\sA-Za-z0-9_]+/g) ?? []
-
-  return parts.length > 0 ? parts.map((part, index) => {
-    const normalized = part.toLowerCase()
-    let kind = ''
-    if (part.startsWith('--') || part.startsWith('/*')) kind = 'comment'
-    else if (/^['"`]/.test(part)) kind = 'string'
-    else if (/^\d/.test(part)) kind = 'number'
-    else if (sqlKeywords.has(normalized)) kind = 'keyword'
-    else if (sqlFunctions.has(normalized)) kind = 'function'
-    else if (tables.has(normalized)) kind = 'table'
-    else if (columns.has(normalized)) kind = 'column'
-    else if (/^[=<>+*/%!-]+$/.test(part)) kind = 'operator'
-
-    return kind ? <span className={`sql-token-${kind}`} key={`${index}-${part}`}>{part}</span> : part
-  }) : ' '
 }

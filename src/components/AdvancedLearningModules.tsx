@@ -41,7 +41,7 @@ export function SqlPandasComparisonLab({ pairs }: { pairs: ComparisonPair[] }) {
   const current = pairs[active]
   return <div className="sql-pandas-lab">
     <div className="comparison-topic-list">{pairs.map((pair, index) => <button className={active === index ? 'active' : ''} onClick={() => setActive(index)} key={pair.concept}><span>{String(index + 1).padStart(2, '0')}</span>{pair.concept}</button>)}</div>
-    <div className="comparison-workbench"><div className="comparison-workbench-heading"><div><span className="eyebrow">CONCEPT BRIDGE</span><h4>{current.concept}</h4></div><Route size={21} /></div><div className="comparison-grid"><article><span className="comparison-label sql">SQL · DATABASE</span><CodeBlock code={current.sql} /></article><article><span className="comparison-label pandas">PANDAS · DATAFRAME</span><CodeBlock code={current.pandas} /></article></div><p className="comparison-takeaway"><Sparkles size={17} />{current.takeaway}</p></div>
+    <div className="comparison-workbench"><div className="comparison-workbench-heading"><div><span className="eyebrow">CONCEPT BRIDGE</span><h4>{current.concept}</h4></div><Route size={21} /></div><div className="comparison-grid"><article><span className="comparison-label sql">SQL · DATABASE</span><CodeBlock code={current.sql} language="sql" /></article><article><span className="comparison-label pandas">PANDAS · DATAFRAME</span><CodeBlock code={current.pandas} language="python" /></article></div><p className="comparison-takeaway"><Sparkles size={17} />{current.takeaway}</p></div>
   </div>
 }
 

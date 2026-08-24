@@ -68,7 +68,7 @@ export function ExplanationDrawer({ problem, open, onClose }: ExplanationDrawerP
                   <p>{step.goal}</p>
                   <p className="step-detail">{step.detail}</p>
                 </div>
-                {step.sql && <CodeBlock code={step.sql} />}
+                {step.sql && <CodeBlock code={step.sql} tables={problem.tables} language="sql" />}
                 {step.table && <DataTableView table={step.table} compact />}
               </article>
             </div>

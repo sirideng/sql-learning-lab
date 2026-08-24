@@ -1,7 +1,8 @@
-import type { ProblemProgress, ProgressMap, ProjectProgressMap } from '../types/problem'
+import type { ActivityMap, ProblemProgress, ProgressMap, ProjectProgressMap } from '../types/problem'
 
 const STORAGE_KEY = 'sql-learning-lab:progress:v1'
 const ACTIVITY_KEY = 'sql-learning-lab:activity:v1'
+const ACTIVITY_MIGRATION_KEY = 'sql-learning-lab:activity-counts-migrated:v2'
 const LESSONS_KEY = 'sql-learning-lab:lessons:v1'
 const PROJECTS_KEY = 'sql-learning-lab:projects:v1'
 
@@ -40,24 +41,55 @@ export function updateProblemProgress(
 export function clearProgress(): ProgressMap {
   localStorage.removeItem(STORAGE_KEY)
   localStorage.removeItem(ACTIVITY_KEY)
+  localStorage.removeItem(ACTIVITY_MIGRATION_KEY)
   localStorage.removeItem(LESSONS_KEY)
   localStorage.removeItem(PROJECTS_KEY)
   return {}
 }
 
-export function loadActivity(): string[] {
+export function loadActivity(progress: ProgressMap = {}): ActivityMap {
   try {
-    return JSON.parse(localStorage.getItem(ACTIVITY_KEY) ?? '[]') as string[]
+    const stored = JSON.parse(localStorage.getItem(ACTIVITY_KEY) ?? '{}') as unknown
+    let activity: ActivityMap
+    if (Array.isArray(stored)) {
+      activity = Object.fromEntries(stored.filter((date): date is string => typeof date === 'string').map((date) => [date, 1]))
+    } else if (stored && typeof stored === 'object') {
+      activity = Object.fromEntries(Object.entries(stored).filter(([, count]) => typeof count === 'number' && Number.isFinite(count) && count > 0).map(([date, count]) => [date, Math.floor(count as number)]))
+    } else activity = {}
+
+    if (localStorage.getItem(ACTIVITY_MIGRATION_KEY) !== '1') {
+      const inferredByLastAttempt: ActivityMap = {}
+      Object.values(progress).forEach((item) => {
+        if (!item.lastAttemptAt || item.attempts <= 0) return
+        const attemptedAt = new Date(item.lastAttemptAt)
+        if (Number.isNaN(attemptedAt.getTime())) return
+        const date = formatLocalDate(attemptedAt)
+        inferredByLastAttempt[date] = (inferredByLastAttempt[date] ?? 0) + item.attempts
+      })
+      Object.entries(inferredByLastAttempt).forEach(([date, count]) => {
+        activity[date] = Math.max(activity[date] ?? 0, count)
+      })
+      localStorage.setItem(ACTIVITY_KEY, JSON.stringify(activity))
+      localStorage.setItem(ACTIVITY_MIGRATION_KEY, '1')
+    }
+    return activity
   } catch {
-    return []
+    return {}
   }
 }
 
-export function recordActivity(activity: string[]): string[] {
-  const today = new Date().toISOString().slice(0, 10)
-  const next = activity.includes(today) ? activity : [...activity, today]
+export function recordActivity(activity: ActivityMap): ActivityMap {
+  const today = formatLocalDate(new Date())
+  const next = { ...activity, [today]: (activity[today] ?? 0) + 1 }
   localStorage.setItem(ACTIVITY_KEY, JSON.stringify(next))
   return next
+}
+
+function formatLocalDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 export function loadCompletedLessons(): string[] {

@@ -1,0 +1,272 @@
+[
+  {
+    "id": "order-count-window",
+    "number": 51,
+    "title": "为每笔订单标注总订单数",
+    "source": "SQL Learning Lab · 基础递进",
+    "chapter": "窗口函数",
+    "difficulty": "简单",
+    "tags": ["Window Function", "COUNT OVER", "OVER"],
+    "description": "在保留每笔订单明细的同时，为每一行增加当前数据集的订单总数。",
+    "challenge": "返回 order_id、amount、total_order_count，并按 order_id 升序排列。",
+    "tables": [
+      {
+        "name": "orders",
+        "columns": ["order_id", "customer_id", "amount"],
+        "rows": [[101, 1, 120], [102, 2, 80], [103, 1, 200], [104, 3, 150]]
+      }
+    ],
+    "hints": [
+      "COUNT(*) 后面加 OVER()，可以在不合并明细行的情况下得到总行数。",
+      "这个窗口不需要 PARTITION BY，也不需要窗口内排序。"
+    ],
+    "starterSql": "",
+    "solution": "SELECT\n  order_id,\n  amount,\n  COUNT(*) OVER () AS total_order_count\nFROM orders\nORDER BY order_id;",
+    "validationTokens": ["select", "count(", "over", "order by"],
+    "expectedResult": {
+      "name": "运行结果",
+      "columns": ["order_id", "amount", "total_order_count"],
+      "rows": [[101, 120, 4], [102, 80, 4], [103, 200, 4], [104, 150, 4]]
+    },
+    "explanation": "OVER() 让 COUNT(*) 看见整个结果集，但不会像 GROUP BY 那样把四笔订单压缩成一行。这常用于明细导出、抽样检查和给每行附加总体指标。",
+    "visualizationSteps": [
+      {
+        "title": "保留订单明细",
+        "goal": "确认最终仍然是一笔订单一行。",
+        "detail": "窗口函数只新增计算列，不改变原表粒度。",
+        "sql": "SELECT order_id, amount\nFROM orders;",
+        "table": {"name": "窗口计算前", "columns": ["order_id", "amount"], "rows": [[101, 120], [102, 80], [103, 200], [104, 150]]}
+      },
+      {
+        "title": "让每一行看见全部订单",
+        "goal": "理解空的 OVER() 表示整个结果集。",
+        "detail": "当前行虽然不同，但四行的窗口范围都包含 101–104。",
+        "sql": "COUNT(*) OVER () AS total_order_count",
+        "table": {"name": "窗口范围", "columns": ["当前 order_id", "窗口内 order_id", "COUNT(*)"], "rows": [[101, "101, 102, 103, 104", 4], [102, "101, 102, 103, 104", 4], [103, "101, 102, 103, 104", 4], [104, "101, 102, 103, 104", 4]]}
+      },
+      {
+        "title": "写回总体指标",
+        "goal": "把总订单数附加到每笔订单。",
+        "detail": "结果仍有四行，而不是 GROUP BY 后的一行。",
+        "sql": "SELECT order_id, amount, COUNT(*) OVER () AS total_order_count\nFROM orders\nORDER BY order_id;",
+        "table": {"name": "最终结果", "columns": ["order_id", "amount", "total_order_count"], "rows": [[101, 120, 4], [102, 80, 4], [103, 200, 4], [104, 150, 4]]}
+      }
+    ]
+  },
+  {
+    "id": "department-average-salary-window",
+    "number": 52,
+    "title": "为员工标注部门平均工资",
+    "source": "SQL Learning Lab · 基础递进",
+    "chapter": "窗口函数",
+    "difficulty": "简单",
+    "tags": ["Window Function", "AVG OVER", "PARTITION BY"],
+    "description": "在人事明细中保留每位员工，同时显示其所在部门的平均工资。",
+    "challenge": "返回 employee_id、department、salary、department_avg，并按 employee_id 升序排列。",
+    "tables": [
+      {
+        "name": "employees",
+        "columns": ["employee_id", "department", "salary"],
+        "rows": [[1, "Sales", 5000], [2, "Sales", 7000], [3, "Product", 4000], [4, "Product", 5000], [5, "Product", 6000]]
+      }
+    ],
+    "hints": [
+      "使用 AVG(salary) 计算平均工资。",
+      "PARTITION BY department 让不同部门独立计算。"
+    ],
+    "starterSql": "",
+    "solution": "SELECT\n  employee_id,\n  department,\n  salary,\n  ROUND(AVG(salary) OVER (PARTITION BY department), 1) AS department_avg\nFROM employees\nORDER BY employee_id;",
+    "validationTokens": ["select", "avg(", "over", "partition by", "order by"],
+    "expectedResult": {
+      "name": "运行结果",
+      "columns": ["employee_id", "department", "salary", "department_avg"],
+      "rows": [[1, "Sales", 5000, 6000], [2, "Sales", 7000, 6000], [3, "Product", 4000, 5000], [4, "Product", 5000, 5000], [5, "Product", 6000, 5000]]
+    },
+    "explanation": "PARTITION BY 像是只分组、不折叠。它适合把部门均值、城市均值或用户均值写回每条明细，用于比较个人与群体基准。",
+    "visualizationSteps": [
+      {
+        "title": "按部门划分窗口",
+        "goal": "让员工只与同部门同事一起计算。",
+        "detail": "Sales 与 Product 是两个互不影响的窗口分区。",
+        "sql": "AVG(salary) OVER (PARTITION BY department)",
+        "table": {"name": "部门窗口", "columns": ["department", "窗口内 employee_id", "窗口内 salary"], "rows": [["Product", "3, 4, 5", "4000, 5000, 6000"], ["Sales", "1, 2", "5000, 7000"]]}
+      },
+      {
+        "title": "分别计算部门平均值",
+        "goal": "得到每个分区的基准工资。",
+        "detail": "Product 平均 5000，Sales 平均 6000。",
+        "sql": "SELECT department, AVG(salary) AS department_avg\nFROM employees\nGROUP BY department;",
+        "table": {"name": "部门基准", "columns": ["department", "department_avg"], "rows": [["Product", 5000], ["Sales", 6000]]}
+      },
+      {
+        "title": "把平均值写回员工明细",
+        "goal": "同时保留个人工资和部门基准。",
+        "detail": "同部门员工得到相同 department_avg，但员工行没有减少。",
+        "sql": "SELECT employee_id, department, salary,\n       ROUND(AVG(salary) OVER (PARTITION BY department), 1) AS department_avg\nFROM employees\nORDER BY employee_id;",
+        "table": {"name": "最终结果", "columns": ["employee_id", "department", "salary", "department_avg"], "rows": [[1, "Sales", 5000, 6000], [2, "Sales", 7000, 6000], [3, "Product", 4000, 5000], [4, "Product", 5000, 5000], [5, "Product", 6000, 5000]]}
+      }
+    ]
+  },
+  {
+    "id": "event-row-number",
+    "number": 53,
+    "title": "给用户事件添加顺序号",
+    "source": "SQL Learning Lab · 基础递进",
+    "chapter": "窗口函数",
+    "difficulty": "简单",
+    "tags": ["Window Function", "ROW_NUMBER", "ORDER BY"],
+    "description": "按照事件发生时间，为全部用户事件生成从 1 开始且不重复的顺序号。",
+    "challenge": "返回 event_id、event_time、event_no；时间相同时 event_id 较小者优先。",
+    "tables": [
+      {
+        "name": "user_events",
+        "columns": ["event_id", "user_id", "event_time"],
+        "rows": [[4, 12, "2024-06-02 09:00"], [1, 10, "2024-06-01 08:30"], [3, 11, "2024-06-01 10:00"], [2, 10, "2024-06-01 10:00"]]
+      }
+    ],
+    "hints": [
+      "使用 ROW_NUMBER() 生成连续且唯一的序号。",
+      "窗口内 ORDER BY event_time, event_id 可以稳定处理并列时间。"
+    ],
+    "starterSql": "",
+    "solution": "SELECT\n  event_id,\n  event_time,\n  ROW_NUMBER() OVER (ORDER BY event_time, event_id) AS event_no\nFROM user_events\nORDER BY event_no;",
+    "validationTokens": ["select", "row_number(", "over", "order by"],
+    "expectedResult": {
+      "name": "运行结果",
+      "columns": ["event_id", "event_time", "event_no"],
+      "rows": [[1, "2024-06-01 08:30", 1], [2, "2024-06-01 10:00", 2], [3, "2024-06-01 10:00", 3], [4, "2024-06-02 09:00", 4]]
+    },
+    "explanation": "ROW_NUMBER() 常用于为日志建立确定顺序、选取第一条记录和后续去重。窗口内排序定义编号规则，外层排序负责最终展示顺序。",
+    "visualizationSteps": [
+      {
+        "title": "先确定事件顺序",
+        "goal": "建立编号所依据的稳定排序。",
+        "detail": "event_id 2 和 3 时间相同，因此继续按 event_id 排序。",
+        "sql": "ORDER BY event_time, event_id",
+        "table": {"name": "窗口内排序", "columns": ["event_id", "event_time"], "rows": [[1, "2024-06-01 08:30"], [2, "2024-06-01 10:00"], [3, "2024-06-01 10:00"], [4, "2024-06-02 09:00"]]}
+      },
+      {
+        "title": "沿排序依次编号",
+        "goal": "为每一行生成唯一序号。",
+        "detail": "ROW_NUMBER 不会因时间并列而产生相同编号。",
+        "sql": "ROW_NUMBER() OVER (ORDER BY event_time, event_id) AS event_no",
+        "table": {"name": "编号过程", "columns": ["排序位置", "event_id", "event_no"], "rows": [[1, 1, 1], [2, 2, 2], [3, 3, 3], [4, 4, 4]]}
+      },
+      {
+        "title": "输出事件与顺序号",
+        "goal": "形成可用于取首条记录的事件明细。",
+        "detail": "最终结果仍然保留所有事件。",
+        "sql": "SELECT event_id, event_time,\n       ROW_NUMBER() OVER (ORDER BY event_time, event_id) AS event_no\nFROM user_events\nORDER BY event_no;",
+        "table": {"name": "最终结果", "columns": ["event_id", "event_time", "event_no"], "rows": [[1, "2024-06-01 08:30", 1], [2, "2024-06-01 10:00", 2], [3, "2024-06-01 10:00", 3], [4, "2024-06-02 09:00", 4]]}
+      }
+    ]
+  },
+  {
+    "id": "user-order-sequence",
+    "number": 54,
+    "title": "标记用户的第几笔订单",
+    "source": "SQL Learning Lab · 业务过渡",
+    "chapter": "窗口函数",
+    "difficulty": "中等",
+    "tags": ["Window Function", "ROW_NUMBER", "PARTITION BY"],
+    "description": "为每位用户的订单按日期编号，识别每个人的首单、第二单和后续订单。",
+    "challenge": "返回 user_id、order_id、order_date、order_sequence，按 user_id 和 order_sequence 排序。",
+    "tables": [
+      {
+        "name": "orders",
+        "columns": ["order_id", "user_id", "order_date", "amount"],
+        "rows": [[105, 2, "2024-03-05", 90], [101, 1, "2024-03-01", 120], [103, 1, "2024-03-08", 80], [102, 2, "2024-03-02", 150], [104, 1, "2024-03-08", 200]]
+      }
+    ],
+    "hints": [
+      "PARTITION BY user_id 让每位用户都从 1 开始编号。",
+      "同一天可能有多笔订单，增加 order_id 作为第二排序字段。"
+    ],
+    "starterSql": "",
+    "solution": "SELECT\n  user_id,\n  order_id,\n  order_date,\n  ROW_NUMBER() OVER (\n    PARTITION BY user_id\n    ORDER BY order_date, order_id\n  ) AS order_sequence\nFROM orders\nORDER BY user_id, order_sequence;",
+    "validationTokens": ["select", "row_number(", "over", "partition by", "order by"],
+    "expectedResult": {
+      "name": "运行结果",
+      "columns": ["user_id", "order_id", "order_date", "order_sequence"],
+      "rows": [[1, 101, "2024-03-01", 1], [1, 103, "2024-03-08", 2], [1, 104, "2024-03-08", 3], [2, 102, "2024-03-02", 1], [2, 105, "2024-03-05", 2]]
+    },
+    "explanation": "PARTITION BY 与 ORDER BY 组合后，可以在每个用户内部建立行为顺序。这是首购、复购间隔、生命周期阶段等分析的基础。",
+    "visualizationSteps": [
+      {
+        "title": "按 user_id 划分窗口",
+        "goal": "让不同用户分别编号。",
+        "detail": "用户 1 有三笔订单，用户 2 有两笔订单。",
+        "sql": "PARTITION BY user_id",
+        "table": {"name": "用户分区", "columns": ["user_id", "窗口内 order_id"], "rows": [[1, "101, 103, 104"], [2, "102, 105"]]}
+      },
+      {
+        "title": "在各分区内排序",
+        "goal": "定义订单先后顺序。",
+        "detail": "用户 1 的 103 和 104 日期相同，使用 order_id 打破并列。",
+        "sql": "ORDER BY order_date, order_id",
+        "table": {"name": "分区内顺序", "columns": ["user_id", "order_id 顺序", "order_date 顺序"], "rows": [[1, "101, 103, 104", "03-01, 03-08, 03-08"], [2, "102, 105", "03-02, 03-05"]]}
+      },
+      {
+        "title": "每个用户从 1 开始编号",
+        "goal": "得到用户订单序号。",
+        "detail": "order_sequence = 1 的行就是该用户首单。",
+        "sql": "ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY order_date, order_id) AS order_sequence",
+        "table": {"name": "最终结果", "columns": ["user_id", "order_id", "order_date", "order_sequence"], "rows": [[1, 101, "2024-03-01", 1], [1, 103, "2024-03-08", 2], [1, 104, "2024-03-08", 3], [2, 102, "2024-03-02", 1], [2, 105, "2024-03-05", 2]]}
+      }
+    ]
+  },
+  {
+    "id": "previous-day-sales",
+    "number": 55,
+    "title": "对比前一天销售额",
+    "source": "SQL Learning Lab · 业务过渡",
+    "chapter": "窗口函数",
+    "difficulty": "中等",
+    "tags": ["Window Function", "LAG", "ORDER BY"],
+    "description": "日报需要展示当天销售额、前一天销售额以及相对前一天的增减金额。",
+    "challenge": "返回 sale_date、sales、previous_sales、sales_change，并按 sale_date 升序。第一天没有前值，应返回 NULL。",
+    "tables": [
+      {
+        "name": "daily_sales",
+        "columns": ["sale_date", "sales"],
+        "rows": [["2024-06-01", 100], ["2024-06-02", 130], ["2024-06-03", 90], ["2024-06-04", 150]]
+      }
+    ],
+    "hints": [
+      "LAG(sales) 可以读取窗口顺序中的上一行。",
+      "sales - LAG(sales) 会自然让第一行得到 NULL。"
+    ],
+    "starterSql": "",
+    "solution": "SELECT\n  sale_date,\n  sales,\n  LAG(sales) OVER (ORDER BY sale_date) AS previous_sales,\n  sales - LAG(sales) OVER (ORDER BY sale_date) AS sales_change\nFROM daily_sales\nORDER BY sale_date;",
+    "validationTokens": ["select", "lag(", "over", "order by"],
+    "expectedResult": {
+      "name": "运行结果",
+      "columns": ["sale_date", "sales", "previous_sales", "sales_change"],
+      "rows": [["2024-06-01", 100, null, null], ["2024-06-02", 130, 100, 30], ["2024-06-03", 90, 130, -40], ["2024-06-04", 150, 90, 60]]
+    },
+    "explanation": "LAG 让当前行读取上一行，是环比、行为间隔和状态变化分析的常用入口。它比自连接更直观，也能清楚表达“上一条记录”的业务含义。",
+    "visualizationSteps": [
+      {
+        "title": "按日期建立窗口顺序",
+        "goal": "明确哪一行是当前行的上一行。",
+        "detail": "LAG 读取的是排序后的上一行，不是原表存储位置。",
+        "sql": "ORDER BY sale_date",
+        "table": {"name": "日期顺序", "columns": ["位置", "sale_date", "sales"], "rows": [[1, "2024-06-01", 100], [2, "2024-06-02", 130], [3, "2024-06-03", 90], [4, "2024-06-04", 150]]}
+      },
+      {
+        "title": "读取上一行销售额",
+        "goal": "为当前日找到对比基准。",
+        "detail": "第一行前面没有记录，所以 previous_sales 为 NULL。",
+        "sql": "LAG(sales) OVER (ORDER BY sale_date) AS previous_sales",
+        "table": {"name": "LAG 后", "columns": ["sale_date", "sales", "previous_sales"], "rows": [["2024-06-01", 100, null], ["2024-06-02", 130, 100], ["2024-06-03", 90, 130], ["2024-06-04", 150, 90]]}
+      },
+      {
+        "title": "计算每日增减金额",
+        "goal": "完成日报环比指标。",
+        "detail": "负数表示比前一天下降，正数表示上升。",
+        "sql": "sales - LAG(sales) OVER (ORDER BY sale_date) AS sales_change",
+        "table": {"name": "最终结果", "columns": ["sale_date", "sales", "previous_sales", "sales_change"], "rows": [["2024-06-01", 100, null, null], ["2024-06-02", 130, 100, 30], ["2024-06-03", 90, 130, -40], ["2024-06-04", 150, 90, 60]]}
+      }
+    ]
+  }
+]

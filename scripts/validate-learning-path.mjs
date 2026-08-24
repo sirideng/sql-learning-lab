@@ -8,6 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const readJson = (relativePath) => JSON.parse(fs.readFileSync(path.join(root, relativePath), 'utf8'))
 const chapters = readJson('src/data/learningPath.json')
 const lessons = readJson('src/data/chapterDeepDives.json')
+const visualStepSql = readJson('src/data/visualStepSql.json')
 const errors = []
 const fail = (message) => errors.push(message)
 const lessonMap = new Map(lessons.map((lesson) => [lesson.id, lesson]))
@@ -44,6 +45,9 @@ for (const chapter of chapters) {
   validateTable(lesson.demo?.finalTable, `${chapter.id} 最终表`)
   if (!lesson.demo?.steps?.every((step) => step.title && step.description && step.table?.columns?.length && Array.isArray(step.table.rows))) fail(`${chapter.id} 执行步骤缺少中间表`)
   lesson.demo?.steps?.forEach((step, index) => validateTable(step.table, `${chapter.id} 中间表 ${index + 1}`))
+  const stepSql = visualStepSql[chapter.id]
+  if (!Array.isArray(stepSql) || stepSql.length !== lesson.demo.steps.length) fail(`${chapter.id} 可视化步骤代码数量与中间表数量不一致`)
+  else if (!stepSql.every((sql) => typeof sql === 'string' && /\b(select|with)\b/i.test(sql))) fail(`${chapter.id} 可视化步骤存在空白或无效 SQL`)
   if (priorityIds.has(chapter.id) && lesson.demo.steps.length < 3) fail(`${chapter.id} 重点章节执行步骤少于 3 个`)
   if (chapter.id === 'join' && lesson.demo.originalTables.length < 2) fail('JOIN 章节必须展示两张原始表')
   if (!Array.isArray(lesson.commonMistakes) || lesson.commonMistakes.length < 3) fail(`${chapter.id} 错误案例少于 3 个`)
@@ -82,6 +86,9 @@ if (lessonMap.get('project-lab')?.projectLab?.steps?.length !== 5) fail('Chapter
 
 for (const lesson of lessons) {
   if (!chapters.some((chapter) => chapter.id === lesson.id)) fail(`深度课程引用未知章节：${lesson.id}`)
+}
+for (const id of Object.keys(visualStepSql)) {
+  if (!lessonMap.has(id)) fail(`可视化步骤代码引用未知章节：${id}`)
 }
 
 function quoteIdentifier(identifier) { return `"${identifier.replaceAll('"', '""')}"` }
@@ -220,5 +227,6 @@ if (errors.length > 0) {
 }
 
 console.log(`Learning Path 校验通过：${chapters.length} 个章节，数据结构、章节引用与表字段一致。`)
+console.log('所有 SQL 执行可视化步骤均已配对独立 SQL 代码。')
 console.log('Chapter 12–18 共 35 道配套练习，全部 Solution 已真实执行并与预期输出一致。')
 console.log('Analytics Case Study、执行顺序、SQL/Pandas 对照和 Project Lab 专项结构完整。')
