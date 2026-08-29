@@ -166,7 +166,7 @@ export function HomePage({ problems, allProblems, progress, onOpen, onOpenQuesti
           <div className="section-heading">
             <div>
               <span className="eyebrow">PRACTICE LAB</span>
-              <h2>{libraryOnly ? `${languageMode === 'sql' ? 'SQL' : 'Pandas'} 数据分析练习` : '题库'}</h2>
+              {libraryOnly ? <h1>{languageMode === 'sql' ? 'SQL' : 'Pandas'} 数据分析练习</h1> : <h2>题库</h2>}
           {libraryOnly && <p className="section-description">{problems.length} 道题，从基础操作逐步走向用户与商业数据分析。</p>}
             </div>
             <label className="search-box">
@@ -174,6 +174,7 @@ export function HomePage({ problems, allProblems, progress, onOpen, onOpenQuesti
               <input value={search} onChange={(event) => { setSearch(event.target.value); resetPage() }} placeholder="搜索题目或标签" />
             </label>
           </div>
+          {libraryOnly && <div className="language-local-switch" aria-label="练习语言"><button className={languageMode === 'sql' ? 'active' : ''} onClick={() => { window.location.hash = '/practice' }}>SQL</button><button className={languageMode === 'pandas' ? 'active' : ''} onClick={() => { window.location.hash = '/pandas/practice' }}>Pandas</button></div>}
           <div className="library-controls"><div className="filter-row">
             {filters.map((item) => (
               <button key={item} className={filter === item ? 'active' : ''} onClick={() => { setFilter(item); if (item === '错题') setChapter('全部章节'); resetPage() }}>
@@ -198,10 +199,9 @@ export function HomePage({ problems, allProblems, progress, onOpen, onOpenQuesti
                       <strong>{problem.title}</strong>
                       <span className={`language-badge ${problem.language ?? 'sql'}`}>{(problem.language ?? 'sql') === 'pandas' ? 'Pandas' : 'SQL'}</span>
                       <span className={`difficulty ${problem.difficulty}`}>{problem.difficulty}</span>
-                      <span className="problem-source">{problem.source}</span>
                     </span>
                     <span className="problem-tags">
-                      {problem.tags.map((tag) => <span key={tag}>{tag}</span>)}
+                      {problem.tags.slice(0, 2).map((tag) => <span key={tag}>{tag}</span>)}
                     </span>
                     {filter === '错题' && <span className="wrong-record-detail">
                       <span className="wrong-record-meta">
@@ -238,7 +238,7 @@ export function HomePage({ problems, allProblems, progress, onOpen, onOpenQuesti
           </nav>}
         </section>
       </main>
-      <footer>SQL Learning Lab · Built for deliberate practice</footer>
+      <footer>{languageMode === 'pandas' ? 'Pandas Learning Lab' : 'SQL Learning Lab'} · Built for deliberate practice</footer>
     </div>
   )
 }

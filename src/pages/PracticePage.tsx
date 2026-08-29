@@ -39,10 +39,10 @@ interface PracticePageProps {
   onOpenPandas?: (id: string) => void
 }
 
-const DEFAULT_EDITOR_FONT_SIZE = 18
-const MIN_EDITOR_FONT_SIZE = 14
-const MAX_EDITOR_FONT_SIZE = 28
-const EDITOR_FONT_STORAGE_KEY = 'sql-learning-lab:editor-font-size:v1'
+const DEFAULT_EDITOR_FONT_SIZE = 20
+const MIN_EDITOR_FONT_SIZE = 16
+const MAX_EDITOR_FONT_SIZE = 30
+const EDITOR_FONT_STORAGE_KEY = 'sql-learning-lab:editor-font-size:v2'
 
 export function PracticePage({
   problem,

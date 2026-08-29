@@ -1,73 +1,20 @@
-import { AlertTriangle, CheckCircle2, Circle, Code2, Lightbulb, Table2 } from 'lucide-react'
-import { useState } from 'react'
+/* eslint-disable react-hooks/immutability */
+import { ArrowRight, CheckCircle2, Circle, Database, Lightbulb, Table2, TriangleAlert } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { AppHeader, type AppSection } from '../components/AppHeader'
 import { CodeBlock } from '../components/CodeBlock'
 import { DataTableView } from '../components/DataTableView'
-import { PandasTransformationVisualizer } from '../components/PandasTransformationVisualizer'
 import type { PandasChapter } from '../types/problem'
 
-interface Props {
-  chapters: PandasChapter[]
-  completedLessons: string[]
-  completed: number
-  total: number
-  initialChapter?: string | null
-  onToggleLesson: (id: string) => void
-  onNavigateSection: (section: AppSection) => void
+interface Props { chapters:PandasChapter[]; completedLessons:string[]; completed:number; total:number; initialChapter?:string; onToggleLesson:(id:string)=>void; onNavigateSection:(section:AppSection)=>void }
+const plan=[['数据结构',[1,2]],['筛选与索引',[3]],['字段转换',[4]],['缺失与质量',[5,6]],['分组聚合',[7]],['连接组合',[8]],['日期与文本',[9,10]],['组内与窗口',[11,12]],['重塑数据',[13]],['综合分析',[14,15]]] as const
+
+export function PandasLearningPage({chapters,completedLessons,completed,total,initialChapter,onToggleLesson,onNavigateSection}:Props){
+  const [selectedId,setSelectedId]=useState(initialChapter&&chapters.some(c=>c.id===initialChapter)?initialChapter:chapters[0].id)
+  const chapter=chapters.find(c=>c.id===selectedId)??chapters[0]
+  const modules=useMemo(()=>plan.map(([title,orders])=>({title,chapters:chapters.filter(c=>(orders as readonly number[]).includes(c.order))})).filter(x=>x.chapters.length),[chapters])
+  const activeModule=modules.findIndex(m=>m.chapters.some(c=>c.id===chapter.id)); const done=completedLessons.includes(chapter.id)
+  const select=(id:string)=>{setSelectedId(id);window.location.hash=`/pandas/learn/${id}`;window.scrollTo({top:0,behavior:'smooth'})}
+  return <div className="learning-page atlas-page"><AppHeader completed={completed} total={total} currentSection="learn" onHome={()=>onNavigateSection('dashboard')} onNavigateSection={onNavigateSection}/><main className="atlas-main learning-map-page"><header className="page-title"><span className="eyebrow">LEARNING MAP</span><h1>数据分析学习地图</h1><p>从 DataFrame 基础逐步走向清洗、聚合、连接与完整分析。</p><div className="language-local-switch"><button onClick={()=>{window.location.hash='/learn'}}>SQL</button><button className="active">Pandas</button></div></header><section className="module-map">{modules.map((m,i)=><button key={m.title} className={i===activeModule?'active':''} onClick={()=>select(m.chapters[0].id)}><span>{String(i+1).padStart(2,'0')}</span><strong>{m.title}</strong><small>{m.chapters.filter(c=>completedLessons.includes(c.id)).length}/{m.chapters.length}</small></button>)}</section><div className="lesson-workspace"><aside className="lesson-subnav"><strong>{modules[activeModule]?.title}</strong>{modules[activeModule]?.chapters.map(item=><button key={item.id} className={item.id===chapter.id?'active':''} onClick={()=>select(item.id)}>{completedLessons.includes(item.id)?<CheckCircle2 size={17}/>:<span>{String(item.order).padStart(2,'0')}</span>}<div><b>{item.title}</b><small>{item.subtitle}</small></div></button>)}</aside><article className="compact-lesson"><header><span>PANDAS {String(chapter.order).padStart(2,'0')}</span><h2>{chapter.title}</h2><p>{chapter.subtitle}</p></header><Block icon={<Lightbulb/>} title="本节解决什么"><div className="lesson-question"><strong>{chapter.why.scenario}</strong><p>{chapter.why.question}</p><span>{chapter.why.reason}</span></div></Block><Block icon={<Database/>} title="三个核心概念"><div className="compact-concepts">{chapter.concepts.slice(0,3).map((item,index)=><article key={item.title}><span>0{index+1}</span><strong>{item.title}</strong><p>{item.what}</p><small>{item.when}</small></article>)}</div></Block><Block icon={<Table2/>} title="数据怎样变化"><div className="transformation-flow"><div><h4>输入数据</h4>{chapter.original.map(t=><DataTableView key={t.name} table={t}/>)}</div><ArrowRight/><div><h4>Pandas</h4><CodeBlock code={chapter.code} tables={chapter.original} language="python"/></div><ArrowRight/><div><h4>最终输出</h4><DataTableView table={chapter.finalTable}/></div></div><details className="alternate-language"><summary>查看 SQL 对照</summary><CodeBlock code={chapter.sqlComparison} tables={chapter.original} language="sql"/></details></Block><Block icon={<TriangleAlert/>} title="常见错误"><div className="compact-mistakes">{chapter.mistakes.slice(0,2).map(item=><article key={item.title}><strong>{item.title}</strong><p>{item.problem}</p><span>修正：{item.fix}</span></article>)}</div></Block><Block icon={<CheckCircle2/>} title="快速检查"><div className="quick-checks">{chapter.exercises.slice(0,3).map((item,index)=><details key={item.question}><summary><span>{index+1}</span><strong>{item.question}</strong></summary><p>{item.hint}</p><CodeBlock code={item.answer} tables={chapter.original} language="python"/></details>)}</div><div className="lesson-actions"><button className={`lesson-complete-button ${done?'complete':''}`} onClick={()=>onToggleLesson(chapter.id)}>{done?<CheckCircle2 size={18}/>:<Circle size={18}/>} {done?'本节已完成':'标记为已学会'}</button><button className="primary-button" onClick={()=>{window.location.hash='/pandas/practice'}}>进入配套练习 <ArrowRight size={16}/></button></div></Block></article></div></main></div>
 }
-
-export function PandasLearningPage({ chapters, completedLessons, completed, total, initialChapter, onToggleLesson, onNavigateSection }: Props) {
-  const [selectedId, setSelectedId] = useState(initialChapter && chapters.some((item) => item.id === initialChapter) ? initialChapter : chapters[0].id)
-  const chapter = chapters.find((item) => item.id === selectedId) ?? chapters[0]
-  const isComplete = completedLessons.includes(chapter.id)
-
-  return <div className="learning-page pandas-learning-page">
-    <AppHeader completed={completed} total={total} mode="pandas" currentSection="learn" onNavigateSection={onNavigateSection} onHome={() => onNavigateSection('dashboard')} />
-    <main className="learning-layout">
-      <aside className="chapter-sidebar">
-        <div className="chapter-sidebar-heading"><span className="eyebrow">PANDAS LEARNING PATH</span><h1>DataFrame 数据分析路径</h1><p>{chapters.filter((item) => completedLessons.includes(item.id)).length} / {chapters.length} 章节完成</p></div>
-        <div className="chapter-list">{chapters.map((item) => <button key={item.id} className={item.id === chapter.id ? 'active' : ''} onClick={() => { setSelectedId(item.id); window.scrollTo({ top: 0, behavior: 'smooth' }) }}><span className={`chapter-status ${completedLessons.includes(item.id) ? 'complete' : ''}`}>{completedLessons.includes(item.id) ? <CheckCircle2 size={18} /> : <span>{String(item.order).padStart(2, '0')}</span>}</span><span><strong>{item.title}</strong><small>{item.subtitle}</small></span></button>)}</div>
-      </aside>
-      <article className="lesson-content" key={chapter.id}>
-        <div className="lesson-hero pandas-lesson-hero"><div><span className="lesson-number">PANDAS CHAPTER {String(chapter.order).padStart(2, '0')}</span><h2>{chapter.title}</h2><p>{chapter.subtitle}</p></div><span className="pandas-mark">pd</span></div>
-
-        <PandasSection number="01" title="为什么需要" icon={<Lightbulb size={19} />}>
-          <div className="lesson-scenario-card"><span className="lesson-mini-label">真实数据分析场景</span><p>{chapter.why.scenario}</p><div className="scenario-question"><strong>业务问题</strong><span>{chapter.why.question}</span></div><div className="scenario-reason"><strong>为什么需要</strong><span>{chapter.why.reason}</span></div></div>
-        </PandasSection>
-
-        <PandasSection number="02" title="核心概念" icon={<Circle size={19} />}>
-          <div className="deep-concept-grid">{chapter.concepts.map((concept) => <article className="deep-concept-card" key={concept.title}><h4>{concept.title}</h4><p><strong>是什么：</strong>{concept.what}</p><p><strong>什么时候用：</strong>{concept.when}</p></article>)}</div>
-        </PandasSection>
-
-        <PandasSection number="03" title="原始 DataFrame" icon={<Table2 size={19} />}>
-          <p className="lesson-section-intro">先确认字段、索引和一行数据代表的业务对象。</p><div className={`lesson-source-tables ${chapter.original.length > 1 ? 'multiple' : ''}`}>{chapter.original.map((item) => <DataTableView key={item.name} table={item} />)}</div>
-        </PandasSection>
-
-        <PandasSection number="04" title="DataFrame 变化可视化" icon={<Code2 size={19} />}>
-          <PandasTransformationVisualizer type={chapter.visualType} original={chapter.original} steps={chapter.steps} finalTable={chapter.finalTable} />
-        </PandasSection>
-
-        <PandasSection number="05" title="Pandas 与 SQL 对照" icon={<Code2 size={19} />}>
-          <div className="comparison-grid"><article><span className="comparison-label pandas">Pandas</span><CodeBlock code={chapter.code} tables={chapter.original} language="python" /></article><article><span className="comparison-label sql">SQL</span><CodeBlock code={chapter.sqlComparison} tables={chapter.original} language="sql" /></article></div>
-        </PandasSection>
-
-        <PandasSection number="06" title="常见错误" icon={<AlertTriangle size={19} />}>
-          <div className="mistake-grid">{chapter.mistakes.map((mistake, index) => <article className="mistake-card" key={mistake.title}><div className="mistake-heading"><span>{index + 1}</span><h4>{mistake.title}</h4></div><p><strong>问题：</strong>{mistake.problem}</p><p className="mistake-fix"><strong>修正：</strong>{mistake.fix}</p></article>)}</div>
-        </PandasSection>
-
-        <PandasSection number="07" title="小练习" icon={<Circle size={19} />}>
-          <div className="chapter-exercise-list">{chapter.exercises.map((exercise, index) => <details key={exercise.question}><summary><span className="exercise-level 基础">练习</span><strong>{index + 1}. {exercise.question}</strong><span className="exercise-reveal">展开</span></summary><div className="exercise-answer"><p><strong>Hint：</strong>{exercise.hint}</p><CodeBlock code={exercise.answer} language="python" /></div></details>)}</div>
-        </PandasSection>
-
-        <PandasSection number="08" title="本章掌握清单" icon={<CheckCircle2 size={19} />}>
-          <div className="chapter-checklist">{chapter.checklist.map((item) => <div key={item}><CheckCircle2 size={18} /><span>{item}</span></div>)}</div>
-          <button className={`lesson-complete-button ${isComplete ? 'complete' : ''}`} onClick={() => onToggleLesson(chapter.id)}>{isComplete ? <><CheckCircle2 size={18} /> 已完成本章</> : '标记为已完成'}</button>
-        </PandasSection>
-      </article>
-    </main>
-  </div>
-}
-
-function PandasSection({ number, title, icon, children }: { number: string; title: string; icon: React.ReactNode; children: React.ReactNode }) {
-  return <section className="lesson-section"><div className="lesson-section-title"><span>{number}</span><span className="lesson-section-icon">{icon}</span><h3>{title}</h3></div>{children}</section>
-}
+function Block({icon,title,children}:{icon:React.ReactNode;title:string;children:React.ReactNode}){return <section className="compact-lesson-block"><div className="compact-block-title"><i>{icon}</i><h3>{title}</h3></div>{children}</section>}

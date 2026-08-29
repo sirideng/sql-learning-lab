@@ -18,12 +18,12 @@ interface LearningCodeEditorProps {
   onRun: () => void
 }
 
-const DEFAULT_SIZE = 18
-const MIN_SIZE = 14
-const MAX_SIZE = 28
+const DEFAULT_SIZE = 20
+const MIN_SIZE = 16
+const MAX_SIZE = 30
 
 export function LearningCodeEditor({ language, value, tables = [], fileName, environment, runLabel, disabled, onChange, onRun }: LearningCodeEditorProps) {
-  const storageKey = `sql-learning-lab:${language}-editor-font-size:v1`
+  const storageKey = `sql-learning-lab:${language}-editor-font-size:v2`
   const [fontSize, setFontSize] = useState(() => {
     const stored = Number(localStorage.getItem(storageKey))
     return Number.isFinite(stored) && stored >= MIN_SIZE && stored <= MAX_SIZE ? stored : DEFAULT_SIZE

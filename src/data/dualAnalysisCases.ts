@@ -30,4 +30,13 @@ export const dualAnalysisCases: DualAnalysisCase[] = [
       { title: '生成学生排名', purpose: '在班级内比较学生表现。', sql: 'SELECT *,RANK() OVER(PARTITION BY class_id ORDER BY score DESC) class_rank FROM valid', pandas: "valid['class_rank']=valid.groupby('class_id')['score'].rank(method='min',ascending=False)", result: table('ranked', ['student_id', 'class_id', 'score', 'class_rank'], [[1, 'A', 90, 1], [2, 'A', 80, 2], [4, 'B', 70, 1]]), conclusion: '排名必须在班级内计算，不能直接比较不同班级。' },
     ],
   },
+  {
+    id: 'cleaning', title: '综合数据清洗', description: '把格式不一致、字段缺失和重复的客户数据整理成可信分析表。',
+    tables: [table('customers_raw', ['customer_id', 'city', 'phone', 'signup_date'], [[1, ' shanghai ', '13812345678', '2024/01/02'], [1, ' shanghai ', '13812345678', '2024/01/02'], [2, 'BEIJING', null, '2024-01-03'], [3, '', '13987654321', '2024/01/04']])],
+    stages: [
+      { title: '去重并统一文本', purpose: '先建立稳定主键，再标准化城市字段。', sql: "SELECT DISTINCT customer_id,UPPER(TRIM(city)) city,phone,signup_date FROM customers_raw", pandas: "clean=(customers_raw.drop_duplicates('customer_id').assign(city=lambda x:x.city.str.strip().str.upper()))", result: table('clean_step_1', ['customer_id', 'city', 'phone', 'signup_date'], [[1, 'SHANGHAI', '13812345678', '2024/01/02'], [2, 'BEIJING', null, '2024-01-03'], [3, '', '13987654321', '2024/01/04']]), conclusion: '重复客户被移除，城市值可以稳定分组。' },
+      { title: '处理缺失与日期', purpose: '区分未知值并把日期转为统一类型。', sql: "SELECT customer_id,COALESCE(NULLIF(city,''),'UNKNOWN') city,phone,STR_TO_DATE(REPLACE(signup_date,'/','-'),'%Y-%m-%d') signup_date FROM clean_step_1", pandas: "clean['city']=clean.city.replace('',pd.NA).fillna('UNKNOWN'); clean['signup_date']=pd.to_datetime(clean.signup_date)", result: table('clean_step_2', ['customer_id', 'city', 'phone', 'signup_date'], [[1, 'SHANGHAI', '13812345678', '2024-01-02'], [2, 'BEIJING', null, '2024-01-03'], [3, 'UNKNOWN', '13987654321', '2024-01-04']]), conclusion: '空城市被明确标记，日期可以参与时间计算。' },
+      { title: '生成可交付字段', purpose: '对敏感手机号脱敏并输出质量状态。', sql: "SELECT customer_id,city,CONCAT(LEFT(phone,3),'****',RIGHT(phone,4)) phone_masked,IF(phone IS NULL,'missing','ok') quality FROM clean_step_2", pandas: "clean['phone_masked']=clean.phone.str[:3]+'****'+clean.phone.str[-4:]; clean['quality']=clean.phone.isna().map({True:'missing',False:'ok'})", result: table('customers_clean', ['customer_id', 'city', 'phone_masked', 'quality'], [[1, 'SHANGHAI', '138****5678', 'ok'], [2, 'BEIJING', null, 'missing'], [3, 'UNKNOWN', '139****4321', 'ok']]), conclusion: '最终表可安全用于地域分析，同时保留数据质量标记。' },
+    ],
+  },
 ]

@@ -71,7 +71,7 @@ export function PlaygroundPage({ scenarios, completed, total, onNavigateSection 
   return <div className="playground-page">
     <AppHeader completed={completed} total={total} currentSection="playground" onNavigateSection={onNavigateSection} onHome={() => onNavigateSection('dashboard')} />
     <main className="playground-main">
-      <section className="playground-heading"><div><span className="hero-pill"><Sparkles size={15} /> SANDBOX</span><h1>SQL Playground</h1><p>用同一组订单数据自由实验。选择一个概念模板，修改 SQL，再观察真实运行结果。</p></div><div className="playground-dataset"><Database size={20} /><span><strong>内置数据集</strong><small>orders · customers</small></span></div></section>
+      <section className="playground-heading"><div><span className="hero-pill"><Sparkles size={15} /> SANDBOX</span><h1>自由实验</h1><p>用同一组订单数据自由实验，修改代码并立即观察真实结果。</p><div className="language-local-switch"><button className="active">SQL</button><button onClick={() => { window.location.hash = '/pandas/playground' }}>Pandas</button></div></div><div className="playground-dataset"><Database size={20} /><span><strong>内置数据集</strong><small>orders · customers</small></span></div></section>
       <div className="scenario-tabs">{scenarios.map((item) => <button className={item.id === selectedId ? 'active' : ''} key={item.id} onClick={() => choose(item)}><span>{item.concept}</span>{item.title}</button>)}</div>
       <div className="playground-grid">
         <section className="playground-editor-card">

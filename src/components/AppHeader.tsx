@@ -1,6 +1,6 @@
-import { BarChart3, CheckCircle2, Database, FlaskConical, GraduationCap, RotateCcw } from 'lucide-react'
+import { BarChart3, BookOpenCheck, CheckCircle2, Code2, Database, FlaskConical, FolderKanban, RotateCcw } from 'lucide-react'
 
-export type AppSection = 'dashboard' | 'learn' | 'practice' | 'playground'
+export type AppSection = 'dashboard' | 'learn' | 'practice' | 'compare' | 'projects' | 'playground' | 'report'
 export type LearningMode = 'sql' | 'pandas' | 'compare'
 
 interface AppHeaderProps {
@@ -15,55 +15,36 @@ interface AppHeaderProps {
 }
 
 const navigation = [
-  { id: 'dashboard' as const, label: '学习概览', icon: BarChart3 },
-  { id: 'learn' as const, label: '学习路径', icon: GraduationCap },
+  { id: 'learn' as const, label: '学习地图', icon: BookOpenCheck },
   { id: 'practice' as const, label: '练习中心', icon: Database },
-  { id: 'playground' as const, label: 'Playground', icon: FlaskConical },
+  { id: 'compare' as const, label: '双语对照', icon: Code2 },
+  { id: 'projects' as const, label: '项目案例', icon: FolderKanban },
+  { id: 'playground' as const, label: '自由实验', icon: FlaskConical },
 ]
 
-export function AppHeader({ completed, total, compact, onHome, onReset, currentSection, onNavigateSection, mode = 'sql' }: AppHeaderProps) {
-  const switchMode = (nextMode: LearningMode) => {
-    window.location.hash = nextMode === 'sql' ? '/learn' : nextMode === 'pandas' ? '/pandas/learn' : '/compare'
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+export function AppHeader({ completed, total, compact, onHome, onReset, currentSection, onNavigateSection, mode }: AppHeaderProps) {
+  const route = window.location.hash.toLowerCase()
+  const effectiveMode: LearningMode = mode ?? (route.includes('pandas') ? 'pandas' : ['dashboard', 'compare', 'projects', 'report'].some((item) => route.includes(item)) ? 'compare' : 'sql')
+  const brand = effectiveMode === 'pandas'
+    ? { title: 'Pandas Learning Lab', subtitle: 'DataFrame analysis workspace', mark: 'P' }
+    : effectiveMode === 'compare'
+      ? { title: 'Data Learning Lab', subtitle: 'SQL + Pandas workspace', mark: 'D' }
+      : { title: 'SQL Learning Lab', subtitle: 'Data analysis workspace', mark: 'SQL' }
+  const navigate = (section: AppSection) => {
+    if (onNavigateSection) onNavigateSection(section)
+    else window.location.assign(`#/${section}`)
   }
-  return (
-    <header className={`app-header ${compact ? 'compact' : ''}`}>
-      <button className="brand" onClick={onHome} aria-label="返回题库首页">
-        <span className="brand-mark"><Database size={20} strokeWidth={2.3} /></span>
-        <span>
-          <strong>Data Learning Lab</strong>
-          {!compact && <small>SQL Learning Lab · Pandas Learning Lab</small>}
-        </span>
-      </button>
-      {!compact && <div className="mode-switch" aria-label="学习模式">
-        <button className={mode === 'sql' ? 'active' : ''} onClick={() => switchMode('sql')}>SQL</button>
-        <button className={mode === 'pandas' ? 'active' : ''} onClick={() => switchMode('pandas')}>Pandas</button>
-        <button className={mode === 'compare' ? 'active' : ''} onClick={() => switchMode('compare')}>SQL ↔ Pandas</button>
-      </div>}
-      {onNavigateSection && !compact && (
-        <nav className="main-navigation" aria-label="主要导航">
-          {navigation.map((item) => {
-            const Icon = item.icon
-            return (
-              <button key={item.id} className={currentSection === item.id ? 'active' : ''} onClick={() => onNavigateSection(item.id)}>
-                <Icon size={16} /> {item.label}
-              </button>
-            )
-          })}
-        </nav>
-      )}
-      <div className="header-actions">
-        <div className="header-progress">
-          <CheckCircle2 size={16} />
-          <span><strong>{completed}</strong> / {total} 已完成</span>
-        </div>
-        {onReset && (
-          <button className="ghost-button reset-button" onClick={onReset} title="重置全部学习记录">
-            <RotateCcw size={15} />
-            <span>重置进度</span>
-          </button>
-        )}
-      </div>
-    </header>
-  )
+
+  const brandMark = <span className={`brand-mark brand-mark-${effectiveMode}`} aria-hidden="true">{effectiveMode === 'sql' ? <Database size={20} /> : <b>{brand.mark}</b>}</span>
+  if (compact) return <header className="app-header compact"><button className="brand" onClick={onHome} aria-label="返回练习中心">{brandMark}<strong>{brand.title}</strong></button><div className="header-actions"><div className="header-progress"><CheckCircle2 size={16} /><span><strong>{completed}</strong> / {total}</span></div></div></header>
+
+  return <>
+    <aside className="app-sidebar" aria-label="网站导航">
+      <button className="sidebar-brand" onClick={onHome} aria-label="返回首页">{brandMark}<span><strong>{brand.title}</strong><small>{brand.subtitle}</small></span></button>
+      <nav className="sidebar-navigation" aria-label="主要导航">{navigation.map((item) => { const Icon = item.icon; return <button key={item.id} className={currentSection === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><Icon size={18} /><span>{item.label}</span></button> })}</nav>
+      <div className="sidebar-footer"><button className={currentSection === 'report' ? 'active' : ''} onClick={() => navigate('report')}><BarChart3 size={18} /><span>学习报告</span></button><div className="sidebar-progress"><span>{completed} / {total} 题完成</span><i><b style={{ width: `${total ? Math.round(completed / total * 100) : 0}%` }} /></i></div>{onReset && <button className="sidebar-reset" onClick={onReset}><RotateCcw size={15} />重置进度</button>}</div>
+    </aside>
+    <header className="mobile-app-bar"><button className="mobile-brand" onClick={onHome}>{brandMark}<strong>{brand.title}</strong></button><button onClick={() => navigate('report')} aria-label="打开学习报告"><BarChart3 size={19} /></button></header>
+    <nav className="mobile-bottom-nav" aria-label="移动端主要导航">{navigation.map((item) => { const Icon = item.icon; return <button key={item.id} className={currentSection === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><Icon size={18} /><span>{item.label}</span></button> })}</nav>
+  </>
 }

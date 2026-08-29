@@ -21,6 +21,9 @@ import { ComparisonPage } from './pages/ComparisonPage'
 import { PandasLearningPage } from './pages/PandasLearningPage'
 import { PandasPlaygroundPage } from './pages/PandasPlaygroundPage'
 import { PandasPracticePage } from './pages/PandasPracticePage'
+import { LearningReportPage } from './pages/LearningReportPage'
+import { ProjectCasesPage } from './pages/ProjectCasesPage'
+import type { AppSection } from './components/AppHeader'
 import type { ChapterDeepDive, ExplanationStep, LearningChapter, LearningLanguage, PlaygroundScenario, SqlProblem } from './types/problem'
 
 const legacyMetadata: Record<string, { source: string; chapter: string }> = {
@@ -80,7 +83,7 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const navigateSection = (section: 'dashboard' | 'learn' | 'practice' | 'playground') => {
+  const navigateSection = (section: AppSection) => {
     window.location.hash = `/${section}`
     setRoute(section)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -94,8 +97,8 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const navigatePandasSection = (section: 'dashboard' | 'learn' | 'practice' | 'playground') => {
-    const target = section === 'dashboard' ? 'dashboard' : `pandas/${section}`
+  const navigatePandasSection = (section: AppSection) => {
+    const target = section === 'learn' || section === 'practice' || section === 'playground' ? `pandas/${section}` : section
     window.location.hash = `/${target}`
     setRoute(target)
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -143,7 +146,15 @@ export default function App() {
   }
 
   if (route === 'compare') {
-    return <ComparisonPage mappings={crossLanguageMappings} cases={dualAnalysisCases} completed={completed + pandasCompleted} total={allQuestions.length} />
+    return <ComparisonPage mappings={crossLanguageMappings} completed={completed + pandasCompleted} total={allQuestions.length} onNavigateSection={navigateSection} />
+  }
+
+  if (route === 'projects') {
+    return <ProjectCasesPage cases={dualAnalysisCases} completed={completed + pandasCompleted} total={allQuestions.length} onNavigateSection={navigateSection} />
+  }
+
+  if (route === 'report') {
+    return <LearningReportPage problems={problems} pandasProblems={pandasQuestions} progress={progress} activity={activity} completedLessons={completedLessons} onNavigateSection={navigateSection} />
   }
 
   if (route === 'playground') {

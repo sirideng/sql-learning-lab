@@ -70,7 +70,7 @@ pandasPlaygroundScenarios.forEach((item) => {
   validateTable(item.result, `${item.id} 结果`)
 })
 
-if (dualAnalysisCases.length !== 3) fail(`双语言案例应为3个，当前${dualAnalysisCases.length}个`)
+if (dualAnalysisCases.length !== 4) fail(`双语言案例应为4个，当前${dualAnalysisCases.length}个`)
 dualAnalysisCases.forEach((item) => {
   if (item.stages?.length !== 3) fail(`${item.id} 应有3个分析阶段`)
   item.stages?.forEach((stage, index) => {
