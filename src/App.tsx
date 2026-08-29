@@ -8,6 +8,7 @@ import { dualAnalysisCases } from './data/dualAnalysisCases'
 import { pandasChapters } from './data/pandasLearningPath'
 import { pandasPlaygroundScenarios } from './data/pandasPlaygroundScenarios'
 import { pandasQuestions } from './data/pandasQuestions'
+import { matplotlibChapters, matplotlibQuestions } from './data/matplotlibLearning'
 import playgroundData from './data/playgroundScenarios.json'
 import problemData from './data/problems.json'
 import windowPracticeData from './data/windowPracticeQuestions.json'
@@ -23,6 +24,8 @@ import { PandasPlaygroundPage } from './pages/PandasPlaygroundPage'
 import { PandasPracticePage } from './pages/PandasPracticePage'
 import { LearningReportPage } from './pages/LearningReportPage'
 import { ProjectCasesPage } from './pages/ProjectCasesPage'
+import { MatplotlibLearningPage } from './pages/MatplotlibLearningPage'
+import { MatplotlibPracticePage } from './pages/MatplotlibPracticePage'
 import type { AppSection } from './components/AppHeader'
 import type { ChapterDeepDive, ExplanationStep, LearningChapter, LearningLanguage, PlaygroundScenario, SqlProblem } from './types/problem'
 
@@ -63,6 +66,7 @@ export default function App() {
 
   const problemId = route.startsWith('problem/') ? route.slice('problem/'.length) : null
   const pandasProblemId = route.startsWith('pandas/problem/') ? route.slice('pandas/problem/'.length) : null
+  const matplotlibProblemId = route.startsWith('matplotlib/problem/') ? route.slice('matplotlib/problem/'.length) : null
   const selectedProblem = useMemo(
     () => problems.find((problem) => problem.id === problemId || String(problem.number) === problemId),
     [problemId],
@@ -71,9 +75,15 @@ export default function App() {
     () => pandasQuestions.find((problem) => problem.id === pandasProblemId || String(problem.number) === pandasProblemId),
     [pandasProblemId],
   )
+  const selectedMatplotlibProblem = useMemo(
+    () => matplotlibQuestions.find((problem) => problem.id === matplotlibProblemId || String(problem.number) === matplotlibProblemId),
+    [matplotlibProblemId],
+  )
   const completed = problems.filter((problem) => progress[problem.id]?.completed).length
   const pandasCompleted = pandasQuestions.filter((problem) => progress[problem.id]?.completed).length
-  const allQuestions = [...problems, ...pandasQuestions]
+  const matplotlibCompleted = matplotlibQuestions.filter((problem) => progress[problem.id]?.completed).length
+  const pandasAreaQuestions = [...pandasQuestions, ...matplotlibQuestions]
+  const allQuestions = [...problems, ...pandasAreaQuestions]
 
   const openProblem = (id: string) => {
     const problem = problems.find((item) => item.id === id || String(item.number) === id)
@@ -97,6 +107,14 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const openMatplotlibProblem = (id: string) => {
+    const problem = matplotlibQuestions.find((item) => item.id === id || String(item.number) === id)
+    if (!problem) return
+    window.location.hash = `/matplotlib/problem/${problem.id}`
+    setRoute(`matplotlib/problem/${problem.id}`)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   const navigatePandasSection = (section: AppSection) => {
     const target = section === 'learn' || section === 'practice' || section === 'playground' ? `pandas/${section}` : section
     window.location.hash = `/${target}`
@@ -104,7 +122,11 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const openAnyQuestion = (question: { id: string; language?: LearningLanguage }) => question.language === 'pandas' ? openPandasProblem(question.id) : openProblem(question.id)
+  const openAnyQuestion = (question: { id: string; language?: LearningLanguage }) => question.language === 'matplotlib' ? openMatplotlibProblem(question.id) : question.language === 'pandas' ? openPandasProblem(question.id) : openProblem(question.id)
+
+  if (selectedMatplotlibProblem) {
+    return <MatplotlibPracticePage key={selectedMatplotlibProblem.id} problem={selectedMatplotlibProblem} questions={matplotlibQuestions} progress={progress} completed={pandasCompleted + matplotlibCompleted} trackTotal={pandasAreaQuestions.length} onHome={() => navigatePandasSection('practice')} onNavigate={openMatplotlibProblem} onDraft={saveDraft} onAttempt={recordAttempt} />
+  }
 
   if (selectedPandasProblem) {
     return <PandasPracticePage key={selectedPandasProblem.id} problem={selectedPandasProblem} progress={progress} total={pandasQuestions.length} completed={pandasCompleted} onHome={() => navigatePandasSection('practice')} onNavigate={openPandasProblem} onOpenSql={openProblem} onDraft={saveDraft} onAttempt={recordAttempt} />
@@ -128,13 +150,28 @@ export default function App() {
     )
   }
 
-  if (route.startsWith('learn')) {
-    return <LearningPathPage chapters={chapters} completedLessons={completedLessons} completedProblems={completed} totalProblems={problems.length} initialChapter={route.split('/')[1]} projectProgress={projectProgress} onNavigateSection={navigateSection} onToggleLesson={toggleLesson} onToggleProjectStep={toggleProject} onOpenPractice={openProblem} />
+  const sqlChapterId = route.startsWith('learn/sql/')
+    ? route.slice('learn/sql/'.length)
+    : route.startsWith('learn/') && !route.startsWith('learn/pandas/')
+      ? route.slice('learn/'.length)
+      : undefined
+  const pandasChapterId = route.startsWith('learn/pandas/')
+    ? route.slice('learn/pandas/'.length)
+    : route.startsWith('pandas/learn/')
+      ? route.slice('pandas/learn/'.length)
+      : undefined
+  const matplotlibChapterId = route.startsWith('learn/matplotlib/') ? route.slice('learn/matplotlib/'.length) : undefined
+
+  if (route === 'learn/matplotlib' || matplotlibChapterId) {
+    return <MatplotlibLearningPage chapters={matplotlibChapters} completedLessons={completedLessons} completedQuestions={matplotlibCompleted} totalQuestions={matplotlibQuestions.length} initialChapter={matplotlibChapterId} showLesson={Boolean(matplotlibChapterId)} onToggleLesson={toggleLesson} onOpenPractice={openMatplotlibProblem} onNavigateSection={navigatePandasSection} />
   }
 
+  if (route === 'learn' || sqlChapterId) {
+    return <LearningPathPage chapters={chapters} completedLessons={completedLessons} completedProblems={completed} totalProblems={problems.length} initialChapter={sqlChapterId} showLesson={Boolean(sqlChapterId)} projectProgress={projectProgress} matplotlibCompletedLessons={matplotlibChapters.filter((item) => completedLessons.includes(item.id)).length} matplotlibCompletedQuestions={matplotlibCompleted} onOpenMatplotlib={() => { window.location.hash='/learn/matplotlib' }} onNavigateSection={navigateSection} onToggleLesson={toggleLesson} onToggleProjectStep={toggleProject} onOpenPractice={openProblem} />
+  }
 
-  if (route.startsWith('pandas/learn')) {
-    return <PandasLearningPage chapters={pandasChapters} completedLessons={completedLessons} completed={pandasCompleted} total={pandasQuestions.length} initialChapter={route.split('/')[2]} onToggleLesson={toggleLesson} onNavigateSection={navigatePandasSection} />
+  if (route === 'pandas/learn' || pandasChapterId) {
+    return <PandasLearningPage chapters={pandasChapters} completedLessons={completedLessons} completed={pandasCompleted} total={pandasQuestions.length} initialChapter={pandasChapterId} showLesson={Boolean(pandasChapterId)} matplotlibCompletedLessons={matplotlibChapters.filter((item) => completedLessons.includes(item.id)).length} matplotlibCompletedQuestions={matplotlibCompleted} onOpenMatplotlib={() => { window.location.hash='/learn/matplotlib' }} onToggleLesson={toggleLesson} onNavigateSection={navigatePandasSection} />
   }
 
   if (route === 'pandas/playground') {
@@ -142,7 +179,7 @@ export default function App() {
   }
 
   if (route === 'pandas/practice') {
-    return <HomePage problems={pandasQuestions} allProblems={allQuestions} progress={progress} onOpen={(id) => openPandasProblem(id)} onOpenQuestion={openAnyQuestion} onReset={reset} libraryOnly languageMode="pandas" onNavigateSection={navigatePandasSection} />
+    return <HomePage problems={pandasAreaQuestions} allProblems={allQuestions} progress={progress} onOpen={(id) => openPandasProblem(id)} onOpenQuestion={openAnyQuestion} onReset={reset} libraryOnly languageMode="pandas" onNavigateSection={navigatePandasSection} />
   }
 
   if (route === 'compare') {
@@ -154,7 +191,7 @@ export default function App() {
   }
 
   if (route === 'report') {
-    return <LearningReportPage problems={problems} pandasProblems={pandasQuestions} progress={progress} activity={activity} completedLessons={completedLessons} onNavigateSection={navigateSection} />
+    return <LearningReportPage problems={problems} pandasProblems={pandasQuestions} matplotlibProblems={matplotlibQuestions} progress={progress} activity={activity} completedLessons={completedLessons} onNavigateSection={navigateSection} />
   }
 
   if (route === 'playground') {
@@ -165,5 +202,5 @@ export default function App() {
     return <HomePage problems={problems} allProblems={allQuestions} progress={progress} onOpen={openProblem} onOpenQuestion={openAnyQuestion} onReset={reset} libraryOnly languageMode="sql" onNavigateSection={navigateSection} />
   }
 
-  return <DashboardPage problems={problems} pandasProblems={pandasQuestions} chapters={chapters} progress={progress} activity={activity} completedLessons={completedLessons} projectProgress={projectProgress} onOpen={openProblem} onOpenPandas={openPandasProblem} onReset={reset} onNavigateSection={navigateSection} />
+  return <DashboardPage problems={problems} pandasProblems={pandasQuestions} matplotlibProblems={matplotlibQuestions} chapters={chapters} progress={progress} activity={activity} completedLessons={completedLessons} projectProgress={projectProgress} onOpen={openProblem} onOpenPandas={openPandasProblem} onOpenMatplotlib={openMatplotlibProblem} onReset={reset} onNavigateSection={navigateSection} />
 }

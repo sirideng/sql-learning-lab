@@ -4,7 +4,7 @@
     "description": "理解行、列、主键与查询结果集，建立 SQL 的数据转换视角。",
     "theory": ["表是一组具有固定字段的数据行，查询不会修改原表。", "SELECT 描述想要的结果，而不是逐行操作步骤。", "字段名保持数据库原名，便于追踪每一步来源。"],
     "pandasBridge": "SQL 表 ≈ DataFrame；SELECT 查询 ≈ 返回一个新的 DataFrame。",
-    "sqlExample": "SELECT customer_id, order_date, amount\nFROM orders;",
+    "sqlExample": "SELECT order_id, amount\nFROM orders;",
     "takeaways": ["查询产生新结果集", "主键唯一标识一行", "先确认数据粒度"], "practiceIds": ["select-high-value-orders", "paid-order-projection"]
   },
   {
@@ -12,7 +12,7 @@
     "description": "像选择 DataFrame 的列一样，用 SELECT 控制输出结构。",
     "theory": ["明确列名比 SELECT * 更适合分析任务。", "AS 只改变结果列名，不改变数据库字段。", "DISTINCT 用于去除完全相同的结果行。"],
     "pandasBridge": "df[['customer_id', 'amount']] 对应 SELECT customer_id, amount。",
-    "sqlExample": "SELECT DISTINCT customer_id, amount\nFROM orders;",
+    "sqlExample": "SELECT customer_id, amount,\n       amount * 0.9 AS discounted_amount\nFROM orders;",
     "takeaways": ["只取需要的列", "理解 DISTINCT 的作用范围", "别名让结果更易读"], "practiceIds": ["select-high-value-orders", "latest-customers", "paid-order-projection", "unique-traffic-sources"]
   },
   {
@@ -20,7 +20,7 @@
     "description": "先用条件留下分析对象，再按业务需要排序。",
     "theory": ["WHERE 在聚合前过滤原始行。", "NULL 必须用 IS NULL / IS NOT NULL 判断。", "ORDER BY 可以使用多个字段，每个字段可独立指定 ASC 或 DESC。"],
     "pandasBridge": "df.loc[condition].sort_values(...) 对应 WHERE ... ORDER BY ...。",
-    "sqlExample": "SELECT order_id, amount\nFROM orders\nWHERE amount >= 100\nORDER BY amount DESC;",
+    "sqlExample": "SELECT order_id, amount, paid_at\nFROM orders\nWHERE status = 'paid'\n  AND amount >= 100\n  AND paid_at IS NOT NULL\nORDER BY amount DESC;",
     "takeaways": ["WHERE 过滤行", "NULL 不是普通值", "排序发生在结果输出前"], "practiceIds": ["select-high-value-orders", "active-users", "null-email-cleaning", "latest-customers", "city-active-users", "highest-priced-product", "latest-paid-orders", "orders-in-amount-range", "customer-name-prefix"]
   },
   {
@@ -28,7 +28,7 @@
     "description": "使用 COUNT、SUM、AVG、MIN、MAX 生成分析指标。",
     "theory": ["聚合函数把一组行压缩为一个值。", "COUNT(column) 不统计 NULL，COUNT(*) 统计行数。", "先确认统计粒度，再选择聚合函数。"],
     "pandasBridge": "df['amount'].sum() / mean() 对应 SUM(amount) / AVG(amount)。",
-    "sqlExample": "SELECT COUNT(*) AS orders, AVG(amount) AS avg_amount\nFROM orders;",
+    "sqlExample": "SELECT COUNT(*) AS order_count,\n       COUNT(coupon_code) AS coupon_order_count,\n       SUM(amount) AS total_amount,\n       AVG(amount) AS avg_amount\nFROM orders;",
     "takeaways": ["COUNT(*) 与 COUNT(column) 不同", "指标必须有明确粒度", "NULL 会影响聚合"], "practiceIds": ["city-average-order", "longest-album", "distinct-city-count", "first-purchase-date"]
   },
   {
@@ -36,7 +36,7 @@
     "description": "观察原始行如何按照维度进入不同分组，再各自完成聚合。",
     "theory": ["GROUP BY 决定结果的粒度。", "SELECT 中的非聚合字段通常必须出现在 GROUP BY。", "先分组，再对每组分别计算聚合函数。"],
     "pandasBridge": "df.groupby('customer_id').agg(...) 与 SQL 的 GROUP BY 完全对应。",
-    "sqlExample": "SELECT customer_id, SUM(amount) AS total_amount\nFROM orders\nGROUP BY customer_id;",
+    "sqlExample": "SELECT customer_id,\n       COUNT(*) AS order_count,\n       SUM(amount) AS total_amount\nFROM orders\nGROUP BY customer_id\nORDER BY customer_id;",
     "takeaways": ["分组字段决定一行代表什么", "聚合在每个组内发生", "先看分组成员再看结果"], "practiceIds": ["city-average-order", "customers-who-bought-all-products", "monthly-revenue", "user-spend-summary", "monthly-sales-summary", "department-average-salary", "city-paid-revenue", "daily-refund-rate", "email-domain-summary"]
   },
   {
@@ -44,7 +44,7 @@
     "description": "清楚区分 WHERE 的分组前过滤与 HAVING 的分组后过滤。",
     "theory": ["WHERE 看得到原始字段，看不到聚合结果。", "HAVING 在 GROUP BY 之后执行，可以使用 COUNT、SUM 等。", "能在 WHERE 完成的过滤应尽量提前完成。"],
     "pandasBridge": "先过滤 df，再 groupby；对聚合结果再次筛选，相当于 HAVING。",
-    "sqlExample": "SELECT city, AVG(amount) AS avg_amount\nFROM orders\nWHERE status = 'paid'\nGROUP BY city\nHAVING AVG(amount) >= 100;",
+    "sqlExample": "SELECT city, AVG(amount) AS avg_amount\nFROM orders\nWHERE status = 'paid'\nGROUP BY city\nHAVING AVG(amount) >= 150\nORDER BY city;",
     "takeaways": ["WHERE：分组前", "HAVING：分组后", "执行顺序决定可用字段"], "practiceIds": ["cities-above-average", "products-sold-only-in-spring", "high-revenue-categories"]
   },
   {
@@ -52,7 +52,7 @@
     "description": "逐行观察连接条件如何匹配，以及 LEFT JOIN 为什么产生 NULL。",
     "theory": ["JOIN 的核心是连接键与两边的数据粒度。", "INNER JOIN 只保留匹配行；LEFT JOIN 保留全部左表行。", "右表找不到匹配时，右表字段以 NULL 补齐。"],
     "pandasBridge": "pd.merge(left, right, how='left', on='id') 对应 LEFT JOIN ... ON。",
-    "sqlExample": "SELECT v.visit_id, v.customer_id, t.amount\nFROM Visits v\nLEFT JOIN Transactions t\n  ON v.visit_id = t.visit_id;",
+    "sqlExample": "SELECT u.user_id, u.user_name, o.order_id, o.amount\nFROM users AS u\nLEFT JOIN orders AS o\n  ON u.user_id = o.user_id\nORDER BY u.user_id, o.order_id;",
     "takeaways": ["先检查连接键粒度", "一对多会增加行数", "NULL 表示未匹配"], "practiceIds": ["customers-without-transactions", "bands-without-albums", "manager-direct-reports", "next-day-retention", "users-without-orders", "user-coupon-usage", "product-sales-coverage", "purchase-funnel-summary"]
   },
   {
@@ -60,7 +60,7 @@
     "description": "将复杂问题拆成可验证的小结果，再组合成最终分析。",
     "theory": ["标量子查询返回一个值，可用于比较。", "派生表子查询返回一张中间表，必须有别名。", "CTE 与子查询都能表达中间步骤，CTE 通常更易读。"],
     "pandasBridge": "先计算一个 Python 变量或临时 DataFrame，再用于后续过滤。",
-    "sqlExample": "SELECT employee_id, name, salary\nFROM Employees\nWHERE salary > (SELECT AVG(salary) FROM Employees);",
+    "sqlExample": "SELECT order_id, amount\nFROM orders\nWHERE amount > (SELECT AVG(amount) FROM orders)\nORDER BY order_id;",
     "takeaways": ["先单独运行内层查询", "确认子查询返回几行几列", "复杂分析优先拆步骤"], "practiceIds": ["customers-who-bought-all-products", "department-top-salary"]
   },
   {
@@ -68,7 +68,7 @@
     "description": "把连续指标或业务状态转换为可分析的类别。",
     "theory": ["CASE 按从上到下的顺序匹配条件。", "一旦命中某个 WHEN，后续条件不会继续判断。", "ELSE 处理所有未命中的情况，避免意外 NULL。"],
     "pandasBridge": "np.select(conditions, choices, default=...) 对应 CASE WHEN。",
-    "sqlExample": "SELECT order_id, amount,\n  CASE WHEN amount >= 200 THEN 'high'\n       WHEN amount >= 100 THEN 'medium'\n       ELSE 'low' END AS amount_band\nFROM orders;",
+    "sqlExample": "SELECT user_id, total_spend,\n  CASE WHEN total_spend >= 500 THEN '高价值'\n       WHEN total_spend >= 200 THEN '中价值'\n       ELSE '低价值' END AS value_segment\nFROM users\nORDER BY user_id;",
     "takeaways": ["条件顺序很重要", "为新字段起清晰别名", "用 ELSE 兜底"], "practiceIds": ["price-band-case", "user-age-segment", "readable-order-status", "user-activity-level", "customer-value-segment"]
   },
   {
@@ -76,7 +76,7 @@
     "description": "点击不同日期，观察当前行的窗口范围和累计计算。",
     "theory": ["窗口函数不会像 GROUP BY 一样减少行数。", "PARTITION BY 决定分区，ORDER BY 决定分区内顺序。", "ROWS 子句明确当前行能看到哪些行。"],
     "pandasBridge": "groupby().transform()、rank()、rolling() 与 SQL 窗口函数思路相近。",
-    "sqlExample": "SELECT date, profit,\n  SUM(profit) OVER (ORDER BY date\n    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_profit\nFROM daily_profits;",
+    "sqlExample": "SELECT sale_date, sales,\n  SUM(sales) OVER (ORDER BY sale_date\n    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_sales\nFROM daily_sales\nORDER BY sale_date;",
     "takeaways": ["结果仍保持原粒度", "窗口范围随当前行变化", "排序是累计计算的前提"], "practiceIds": ["order-count-window", "department-average-salary-window", "event-row-number", "user-order-sequence", "previous-day-sales", "daily-cumulative-profit", "customer-spend-rank", "moving-average-7d", "regional-user-spend-rank", "monthly-cumulative-sales"]
   },
   {
@@ -84,7 +84,7 @@
     "description":"从月销售趋势到注册后第 N 天留存，掌握真实分析中最常用的日期提取、格式化与偏移。",
     "theory":["日期函数把时间戳转换为年、月、日等分析维度。","DATEDIFF 衡量两个日期之间的间隔。","DATE_ADD 与 DATE_SUB 用于构造观察窗口。"],
     "pandasBridge":"DATE_FORMAT / DATEDIFF / DATE_ADD 对应 Pandas 的 dt.to_period、日期相减与 Timedelta。",
-    "sqlExample":"SELECT DATE_FORMAT(order_date, '%Y-%m') AS month, SUM(amount)\nFROM orders\nGROUP BY DATE_FORMAT(order_date, '%Y-%m');",
+    "sqlExample":"SELECT DATE_FORMAT(order_date, '%Y-%m') AS sale_month,\n       SUM(amount) AS monthly_sales\nFROM orders\nGROUP BY DATE_FORMAT(order_date, '%Y-%m')\nORDER BY sale_month;",
     "takeaways":["能提取年/月/日","能计算日期差","能构造留存观察日期"],"practiceIds":["monthly-sales-summary","signup-next-day-retention","next-day-retention"]
   },
   {
@@ -92,7 +92,7 @@
     "description":"处理脏用户名、商品名称、邮箱域名与手机号脱敏，将半结构化文本转成稳定分析维度。",
     "theory":["LOWER/UPPER 统一大小写。","SUBSTRING 与 REPLACE 提取或替换文本。","CONCAT 将多个字段组合成展示值。"],
     "pandasBridge":"SQL 字符串函数对应 Pandas 的 Series.str 方法。",
-    "sqlExample":"SELECT LOWER(email), SUBSTRING(phone, 1, 3)\nFROM users;",
+    "sqlExample":"SELECT user_id,\n       SUBSTRING(LOWER(email), INSTR(email, '@') + 1) AS email_domain,\n       CONCAT(SUBSTRING(phone, 1, 3), '****', SUBSTRING(phone, -4)) AS masked_phone\nFROM users\nORDER BY user_id;",
     "takeaways":["会标准化大小写","会提取和替换子串","能安全展示敏感文本"],"practiceIds":["email-domain-summary","customer-name-prefix","readable-order-status"]
   },
   {
@@ -100,7 +100,7 @@
     "description":"用命名中间表替代层层嵌套的子查询，让复杂用户、订单和指标分析更易读、更可检查。",
     "theory":["CTE 只在当前语句作用域内存在。","多个 CTE 可以按依赖顺序串联。","每个 CTE 应保持单一职责和明确粒度。"],
     "pandasBridge":"CTE 对应给中间 DataFrame 命名并按 pipeline 逐步转换。",
-    "sqlExample":"WITH user_spend AS (SELECT user_id, SUM(amount) total FROM orders GROUP BY user_id)\nSELECT * FROM user_spend;",
+    "sqlExample":"WITH valid_orders AS (\n  SELECT user_id, amount\n  FROM orders\n  WHERE status = 'paid'\n),\nuser_spend AS (\n  SELECT user_id, SUM(amount) AS total_spend\n  FROM valid_orders\n  GROUP BY user_id\n)\nSELECT user_id, total_spend\nFROM user_spend\nORDER BY user_id;",
     "takeaways":["会把子查询改写为 WITH","会设计多层 CTE","会逐层验证中间结果"],"practiceIds":["repeat-buyer-rate","regional-user-spend-rank","monthly-cumulative-sales"]
   },
   {
@@ -108,7 +108,7 @@
     "description": "综合查询、清洗、聚合、连接与窗口函数完成用户和销售分析。",
     "theory": ["先写清楚结果一行代表什么。", "把复杂 SQL 拆成多个可单独验证的 CTE。", "每一步都检查行数、主键和 NULL，再进入下一步。"],
     "pandasBridge": "像 Pandas pipeline 一样，将 SQL 写成一条可检查的数据转换链。",
-    "sqlExample": "WITH cleaned AS (...),\nuser_metrics AS (...),\nranked AS (...)\nSELECT * FROM ranked;",
+    "sqlExample": "WITH valid_orders AS (\n  SELECT user_id, amount\n  FROM orders\n  WHERE status = 'paid'\n),\nuser_metrics AS (\n  SELECT user_id, COUNT(*) AS order_count, SUM(amount) AS total_spend\n  FROM valid_orders\n  GROUP BY user_id\n),\nenriched AS (\n  SELECT m.user_id, u.city, m.order_count, m.total_spend\n  FROM user_metrics AS m\n  JOIN users AS u ON m.user_id = u.user_id\n)\nSELECT city, COUNT(*) AS buyers, SUM(total_spend) AS revenue\nFROM enriched\nGROUP BY city\nORDER BY revenue DESC;",
     "takeaways": ["问题先于语法", "逐步验证中间表", "结果必须能解释业务"], "practiceIds": ["repeat-purchase-rate", "next-day-retention", "monthly-revenue", "repeat-buyer-rate", "daily-active-users", "signup-next-day-retention", "three-day-login-streak", "purchase-funnel-summary", "customer-value-segment"]
   },
   {
@@ -116,7 +116,7 @@
     "description":"通过电商、游戏留存和学生成绩三个案例，练习从数据表、指标口径到 SQL 结果解释的完整流程。",
     "theory":["先明确业务问题和指标口径。","按粒度拆解中间表和计算步骤。","最终结果必须能够转化为业务结论。"],
     "pandasBridge":"SQL 负责数据库侧提取聚合，Pandas 适合结果探索、可视化和建模准备。",
-    "sqlExample":"WITH metrics AS (...) SELECT * FROM metrics;",
+    "sqlExample":"WITH paid_orders AS (\n  SELECT order_id, user_id, amount\n  FROM orders\n  WHERE status = 'paid'\n),\nbuyer_orders AS (\n  SELECT user_id, COUNT(*) AS order_count\n  FROM paid_orders\n  GROUP BY user_id\n)\nSELECT\n  (SELECT COUNT(*) FROM buyer_orders) AS buyers,\n  (SELECT SUM(amount) FROM paid_orders) AS gmv,\n  (SELECT SUM(amount) * 1.0 / COUNT(*) FROM paid_orders) AS aov,\n  SUM(CASE WHEN order_count >= 2 THEN 1 ELSE 0 END) * 1.0 / COUNT(*) AS repeat_buyer_rate\nFROM buyer_orders;",
     "takeaways":["能定义 GMV/DAU/留存","能解释结果而非只写 SQL","能完成多表分析"],"practiceIds":["daily-active-users","signup-next-day-retention","customer-value-segment"]
   },
   {
@@ -124,7 +124,7 @@
     "description":"不深入数据库运维，只理解字段选择、提前过滤、连接键和索引如何影响分析查询成本。",
     "theory":["SELECT * 会读取不需要的列。","WHERE 越早缩小数据越好。","索引帮助数据库更快定位过滤和连接行。"],
     "pandasBridge":"SQL 的提前过滤与选列对应 Pandas 读取后尽快 query 和选择列，减少内存占用。",
-    "sqlExample":"SELECT order_id, amount FROM orders WHERE order_date >= '2024-01-01';",
+    "sqlExample":"SELECT order_id, user_id, amount\nFROM orders\nWHERE status = 'paid'\n  AND order_date >= '2024-01-01'\nORDER BY order_id;",
     "takeaways":["会避免 SELECT *","理解索引概念","知道 SQL 逻辑执行顺序"],"practiceIds":["select-high-value-orders","city-paid-revenue","user-spend-summary"]
   },
   {
@@ -132,7 +132,7 @@
     "description":"系统对照 SELECT、GROUP BY、JOIN、CASE 与窗口函数在 SQL 和 Pandas 中的表达方式。",
     "theory":["SQL 擅长数据库侧筛选、连接与聚合。","Pandas 擅长内存中的探索、变换和建模衔接。","共同核心是粒度、键和数据转换。"],
     "pandasBridge":"用同一张表同时写 SQL 与 Pandas，比较结果粒度是否一致。",
-    "sqlExample":"SELECT city, AVG(score) FROM students GROUP BY city;",
+    "sqlExample":"SELECT city, COUNT(*) AS order_count, SUM(amount) AS gmv\nFROM orders\nWHERE status = 'paid'\nGROUP BY city\nORDER BY gmv DESC;",
     "takeaways":["会把 groupby 与 GROUP BY 互译","会把 merge 与 JOIN 互译","会把 rolling/rank 与窗口函数互译"],"practiceIds":["department-average-salary","users-without-orders","monthly-cumulative-sales"]
   },
   {
@@ -140,7 +140,7 @@
     "description":"从数据导入、探索、清洗、指标计算到分析报告，独立完成数据分析实习级 SQL 项目。",
     "theory":["项目从业务问题和数据字典开始。","每一步都输出可验证中间结果。","最终报告包含口径、SQL、结果与建议。"],
     "pandasBridge":"SQL 负责可重复的数据准备，Pandas 负责深度探索、图表和报告输出。",
-    "sqlExample":"WITH cleaned AS (...), metrics AS (...) SELECT * FROM metrics;",
+    "sqlExample":"WITH clean_orders AS (\n  SELECT o.user_id, u.city, o.amount\n  FROM orders AS o\n  JOIN users AS u ON o.user_id = u.user_id\n  WHERE o.status = 'paid'\n),\nuser_metrics AS (\n  SELECT user_id, city, COUNT(*) AS order_count, SUM(amount) AS total_spend\n  FROM clean_orders\n  GROUP BY user_id, city\n)\nSELECT city,\n       COUNT(*) AS buyers,\n       SUM(total_spend) AS gmv,\n       AVG(total_spend) AS avg_spend,\n       SUM(CASE WHEN order_count >= 2 THEN 1 ELSE 0 END) AS repeat_buyers\nFROM user_metrics\nGROUP BY city\nORDER BY gmv DESC;",
     "takeaways":["能完成端到端分析","会记录指标口径","能输出可解释结论"],"practiceIds":["purchase-funnel-summary","repeat-buyer-rate","regional-user-spend-rank"]
   }
 ]

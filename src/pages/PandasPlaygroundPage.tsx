@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { AppHeader, type AppSection } from '../components/AppHeader'
 import { DataTableView } from '../components/DataTableView'
 import { LearningCodeEditor } from '../components/LearningCodeEditor'
+import { TrackTabs } from '../components/TrackTabs'
 import { PandasTransformationVisualizer } from '../components/PandasTransformationVisualizer'
 import type { PandasPlaygroundScenario } from '../types/problem'
 
@@ -28,7 +29,7 @@ export function PandasPlaygroundPage({ scenarios, completed, total, onNavigateSe
   return <div className="pandas-playground-page">
     <AppHeader completed={completed} total={total} mode="pandas" currentSection="playground" onNavigateSection={onNavigateSection} onHome={() => onNavigateSection('dashboard')} />
     <main className="pandas-playground-main">
-      <section className="playground-heading"><div><span className="eyebrow">PRACTICE SANDBOX</span><h1>自由实验</h1><p>在预定义数据集上练习核心 DataFrame 操作，并观察每次转换。</p><div className="language-local-switch"><button onClick={() => { window.location.hash = '/playground' }}>SQL</button><button className="active">Pandas</button></div></div><label>实验场景<select value={selectedId} onChange={(event) => { setSelectedId(event.target.value); setStatus(null) }}>{scenarios.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label></section>
+      <section className="playground-heading"><div><span className="eyebrow">PANDAS TRACK · SANDBOX</span><h1>自由实验</h1><p>在预定义数据集上练习核心 DataFrame 操作，并观察每次转换。</p><TrackTabs value="pandas" label="实验语言" onChange={(value) => { if (value === 'sql') window.location.hash = '/playground' }} /></div><label>实验场景<select value={selectedId} onChange={(event) => { setSelectedId(event.target.value); setStatus(null) }}>{scenarios.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}</select></label></section>
       <div className="pandas-playground-grid">
         <section className="playground-pane input-pane"><div className="workspace-panel-title"><strong>输入数据</strong><span>{scenario.concept}</span></div><div className="playground-pane-scroll">{scenario.tables.map((item) => <DataTableView key={item.name} table={item} />)}</div></section>
         <section className="playground-pane code-pane"><LearningCodeEditor language="python" value={code} tables={scenario.tables} fileName="playground.py" environment="Learning Simulator" runLabel="运行实验" onChange={setCode} onRun={run} /><button className="reset-code-button" onClick={() => setCode(scenario.code)}><RotateCcw size={16} />重置示例</button></section>

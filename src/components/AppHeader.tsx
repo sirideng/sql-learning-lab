@@ -25,26 +25,22 @@ const navigation = [
 export function AppHeader({ completed, total, compact, onHome, onReset, currentSection, onNavigateSection, mode }: AppHeaderProps) {
   const route = window.location.hash.toLowerCase()
   const effectiveMode: LearningMode = mode ?? (route.includes('pandas') ? 'pandas' : ['dashboard', 'compare', 'projects', 'report'].some((item) => route.includes(item)) ? 'compare' : 'sql')
-  const brand = effectiveMode === 'pandas'
-    ? { title: 'Pandas Learning Lab', subtitle: 'DataFrame analysis workspace', mark: 'P' }
-    : effectiveMode === 'compare'
-      ? { title: 'Data Learning Lab', subtitle: 'SQL + Pandas workspace', mark: 'D' }
-      : { title: 'SQL Learning Lab', subtitle: 'Data analysis workspace', mark: 'SQL' }
+  const brand = { title: 'Data Learning Lab', subtitle: 'SQL + Pandas workspace' }
   const navigate = (section: AppSection) => {
     if (onNavigateSection) onNavigateSection(section)
     else window.location.assign(`#/${section}`)
   }
 
-  const brandMark = <span className={`brand-mark brand-mark-${effectiveMode}`} aria-hidden="true">{effectiveMode === 'sql' ? <Database size={20} /> : <b>{brand.mark}</b>}</span>
+  const brandMark = <span className={`brand-mark brand-mark-${effectiveMode}`} aria-hidden="true"><b>D</b></span>
   if (compact) return <header className="app-header compact"><button className="brand" onClick={onHome} aria-label="返回练习中心">{brandMark}<strong>{brand.title}</strong></button><div className="header-actions"><div className="header-progress"><CheckCircle2 size={16} /><span><strong>{completed}</strong> / {total}</span></div></div></header>
 
   return <>
     <aside className="app-sidebar" aria-label="网站导航">
       <button className="sidebar-brand" onClick={onHome} aria-label="返回首页">{brandMark}<span><strong>{brand.title}</strong><small>{brand.subtitle}</small></span></button>
-      <nav className="sidebar-navigation" aria-label="主要导航">{navigation.map((item) => { const Icon = item.icon; return <button key={item.id} className={currentSection === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><Icon size={18} /><span>{item.label}</span></button> })}</nav>
-      <div className="sidebar-footer"><button className={currentSection === 'report' ? 'active' : ''} onClick={() => navigate('report')}><BarChart3 size={18} /><span>学习报告</span></button><div className="sidebar-progress"><span>{completed} / {total} 题完成</span><i><b style={{ width: `${total ? Math.round(completed / total * 100) : 0}%` }} /></i></div>{onReset && <button className="sidebar-reset" onClick={onReset}><RotateCcw size={15} />重置进度</button>}</div>
+      <nav className="sidebar-navigation" aria-label="主要导航">{navigation.map((item) => { const Icon = item.icon; const active = currentSection === item.id; return <button key={item.id} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} onClick={() => navigate(item.id)}><Icon size={18} /><span>{item.label}</span></button> })}</nav>
+      <div className="sidebar-footer"><button className={currentSection === 'report' ? 'active' : ''} aria-current={currentSection === 'report' ? 'page' : undefined} onClick={() => navigate('report')}><BarChart3 size={18} /><span>学习报告</span></button><div className="sidebar-progress"><span>{completed} / {total} 题完成</span><i><b style={{ width: `${total ? Math.round(completed / total * 100) : 0}%` }} /></i></div>{onReset && <button className="sidebar-reset" onClick={onReset}><RotateCcw size={15} />重置进度</button>}</div>
     </aside>
     <header className="mobile-app-bar"><button className="mobile-brand" onClick={onHome}>{brandMark}<strong>{brand.title}</strong></button><button onClick={() => navigate('report')} aria-label="打开学习报告"><BarChart3 size={19} /></button></header>
-    <nav className="mobile-bottom-nav" aria-label="移动端主要导航">{navigation.map((item) => { const Icon = item.icon; return <button key={item.id} className={currentSection === item.id ? 'active' : ''} onClick={() => navigate(item.id)}><Icon size={18} /><span>{item.label}</span></button> })}</nav>
+    <nav className="mobile-bottom-nav" aria-label="移动端主要导航">{navigation.map((item) => { const Icon = item.icon; const active = currentSection === item.id; return <button key={item.id} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} onClick={() => navigate(item.id)}><Icon size={18} /><span>{item.label}</span></button> })}</nav>
   </>
 }

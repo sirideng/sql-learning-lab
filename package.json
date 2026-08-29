@@ -10,7 +10,9 @@
     "validate:learning": "node scripts/validate-learning-path.mjs",
     "validate:questions": "node scripts/validate-question-bank.mjs",
     "validate:pandas": "node scripts/validate-pandas-content.mjs",
+    "validate:matplotlib": "node scripts/validate-matplotlib-content.mjs",
     "validate:storage": "node scripts/validate-storage-migration.mjs",
+    "test": "npm run validate:learning && npm run validate:pandas && npm run validate:matplotlib && npm run validate:questions && npm run validate:storage",
     "preview": "vite preview"
   },
   "dependencies": {

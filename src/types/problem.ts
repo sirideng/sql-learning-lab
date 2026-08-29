@@ -1,5 +1,5 @@
 export type Difficulty = '简单' | '中等' | '困难'
-export type LearningLanguage = 'sql' | 'pandas' | 'both'
+export type LearningLanguage = 'sql' | 'pandas' | 'matplotlib' | 'both'
 
 export type CellValue = string | number | boolean | null
 
@@ -67,6 +67,36 @@ export interface PandasQuestion extends LearningQuestion {
   alternateSqlId?: string
 }
 
+export type MatplotlibChartKind = 'line' | 'bar' | 'hist' | 'scatter' | 'multi-line' | 'subplots' | 'delivery'
+
+export interface MatplotlibExpectation {
+  kind: MatplotlibChartKind
+  xColumns: string[]
+  yColumns: string[]
+  pointCounts: number[]
+  axesCount?: number
+  requiresTitle?: boolean
+  requiresXLabel?: boolean
+  requiresYLabel?: boolean
+  requiresLegend?: boolean
+  requiresAnnotation?: boolean
+  requiresSave?: boolean
+  requiresMarker?: boolean
+  requiresAlpha?: boolean
+  requiresLayout?: boolean
+}
+
+export interface MatplotlibQuestion extends Omit<LearningQuestion, 'language'> {
+  language: 'matplotlib'
+  starterCode: string
+  expectedChart: {
+    title: string
+    summary: string
+    ariaLabel: string
+    expectation: MatplotlibExpectation
+  }
+}
+
 export interface ProblemProgress {
   completed: boolean
   incorrectAttempts: number
@@ -76,7 +106,7 @@ export interface ProblemProgress {
   lastIncorrectSql?: string
   lastIncorrectCode?: string
   lastErrorReason?: string
-  language?: 'sql' | 'pandas'
+  language?: 'sql' | 'pandas' | 'matplotlib'
 }
 
 export type ProgressMap = Record<string, ProblemProgress>
@@ -216,6 +246,21 @@ export interface PandasChapter {
   visualType: 'dataframe' | 'filter' | 'groupby' | 'merge' | 'date' | 'string' | 'transform' | 'diff' | 'pivot' | 'cleaning' | 'analysis'
 }
 
+export interface MatplotlibChapter {
+  id: string
+  order: number
+  title: string
+  subtitle: string
+  why: { scenario: string; question: string; reason: string }
+  concepts: Array<{ title: string; what: string; when: string }>
+  code: string
+  original: DataTable[]
+  finalTable: DataTable
+  mistakes: Array<{ title: string; problem: string; fix: string }>
+  exercises: Array<{ question: string; hint: string; answer: string }>
+  practiceIds: string[]
+}
+
 export interface CrossLanguageMapping {
   id: string
   title: string
@@ -251,6 +296,9 @@ export interface DualAnalysisCase {
     purpose: string
     sql: string
     pandas: string
+    matplotlib?: string
+    chartSummary?: string
+    relatedMatplotlibLesson?: string
     result: DataTable
     conclusion: string
   }>

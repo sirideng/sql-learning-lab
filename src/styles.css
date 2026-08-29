@@ -42,6 +42,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .brand-mark { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; color: white; background: linear-gradient(145deg, #776fff, #554de7); box-shadow: 0 8px 18px rgba(99, 91, 255, 0.25); }
 .brand-mark b { font-size: 17px; font-weight: 850; letter-spacing: -.04em; }
 .brand-mark-pandas { background: linear-gradient(145deg, #28ad82, #08775c); box-shadow: 0 8px 18px rgba(15,137,99,.24); }
+.brand-mark-sql { background: linear-gradient(145deg, #776fff, #554de7); }
 .brand-mark-compare { background: linear-gradient(145deg, #7065fa, #31a987); box-shadow: 0 8px 18px rgba(75,92,193,.22); }
 .brand strong { display: block; font-size: 15px; letter-spacing: -0.025em; }
 .brand small { display: block; margin-top: 2px; color: #939398; font-size: 10px; letter-spacing: .035em; }
@@ -576,10 +577,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px
 .mistake-card > p strong { color: #a33d3d; }
 .mistake-card .mistake-fix { padding: 12px 14px; border-radius: 10px; color: #32654e; background: #edf8f2; }
 .mistake-card .mistake-fix strong { color: #23734d; }
-.comparison-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.comparison-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 18px; }
 .comparison-grid article { min-width: 0; padding: 17px; border: 1.5px solid #e0e0e6; border-radius: 15px; background: #fafafd; }
 .comparison-grid .code-block { margin: 12px 0 0; }
-.comparison-grid .code-block pre { min-height: 170px; font-size: 14px; }
+.comparison-grid .code-block pre { min-height: 0; font-size: 14px; white-space: pre-wrap; overflow-x: visible; overflow-wrap: anywhere; word-break: normal; }
 .comparison-label { display: inline-flex; padding: 6px 10px; border-radius: 7px; font: 800 11px "DM Mono",monospace; letter-spacing: .08em; }
 .comparison-label.sql { color: #5d56d8; background: #e9e7ff; }
 .comparison-label.pandas { color: #9a6a10; background: #fff3d5; }
@@ -1097,6 +1098,97 @@ body { font-size: 16px; }
   .project-lab-summary > strong { grid-column: 2; font-size: 22px; }
 }
 
+/* Matplotlib delivery path */
+.progress-supplement { display: block; margin-top: 11px; color: #278468; font-size: 12px; font-weight: 750; }
+.language-badge.matplotlib { color: #176f58; background: #dff6ed; }
+.matplotlib-inline-mark { display: grid; flex: 0 0 auto; place-items: center; min-width: 42px; height: 34px; padding: 0 8px; border-radius: 10px; color: #fff; background: linear-gradient(145deg,#2ca780,#17735d); font: 800 13px "DM Mono",monospace; }
+.matplotlib-mini-path { margin: 18px 0 26px; padding: 22px 24px; display: grid; grid-template-columns: 52px minmax(0,1fr) auto; gap: 17px; align-items: center; border: 1px solid #dcebe5; border-radius: 20px; background: linear-gradient(135deg,#fff 30%,#f0faf6); box-shadow: 0 10px 30px rgba(21,110,84,.055); }
+.matplotlib-mini-path > i { width: 52px; height: 52px; display: grid; place-items: center; border-radius: 16px; color: #168664; background: #dff6ed; }
+.matplotlib-mini-path h2 { margin: 5px 0 5px; font-size: 23px; }
+.matplotlib-mini-path p { margin: 0; color: var(--muted); line-height: 1.55; }
+.matplotlib-mini-path small { display: block; margin-top: 8px; color: #17735d; font-weight: 750; }
+.matplotlib-chapter-map { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 10px; margin-bottom: 24px; }
+.matplotlib-chapter-map button { min-width: 0; min-height: 105px; padding: 15px; display: flex; flex-direction: column; align-items: flex-start; gap: 7px; border: 1px solid #e1e7e4; border-radius: 15px; color: var(--ink); background: #fff; text-align: left; cursor: pointer; }
+.matplotlib-chapter-map button > span { color: #168664; font-size: 12px; font-weight: 850; }
+.matplotlib-chapter-map button strong { font-size: 15px; }
+.matplotlib-chapter-map button small { color: var(--muted); font-size: 12px; line-height: 1.4; }
+.matplotlib-chapter-map button.active { border-color: #39a987; background: #ecfaf5; box-shadow: 0 8px 24px rgba(27,145,106,.09); }
+.matplotlib-lesson { width: min(1120px,100%); margin: 0 auto; }
+.matplotlib-demo { display: grid; gap: 20px; }
+.matplotlib-demo > div { min-width: 0; }
+.matplotlib-demo h4 { margin: 0 0 10px; font-size: 15px; }
+.expected-chart { min-width: 0; margin: 0; overflow: hidden; border: 1px solid #dedee6; border-radius: 16px; background: #fff; }
+.expected-chart figcaption { padding: 15px 17px 10px; display: flex; flex-direction: column; gap: 5px; }
+.expected-chart figcaption strong { font-size: 16px; }
+.expected-chart figcaption span { color: var(--muted); font-size: 13px; line-height: 1.5; }
+.expected-chart svg { display: block; width: 100%; height: auto; max-height: 310px; padding: 4px 12px 14px; }
+.expected-chart svg text { fill: #7f7e87; font: 500 11px system-ui,sans-serif; }
+.axis,.sub-axis { stroke: #c9c9d1; stroke-width: 2; }
+.chart-line { fill: none; stroke: #655ef6; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.chart-line.secondary { stroke: #2b9b79; stroke-dasharray: 8 5; }
+.chart-annotation { stroke: #8a6570; stroke-width: 1.5; }
+.chart-point { fill: #655ef6; stroke: #fff; stroke-width: 2; }
+.chart-bar { fill: #625bf6; opacity: .82; }
+.chart-bar.histogram { fill: #279b78; stroke: #fff; stroke-width: 1; }
+.chart-requirements { margin: 14px 0; padding: 0; display: grid; gap: 9px; list-style: none; }
+.chart-requirements li { display: flex; gap: 8px; align-items: flex-start; color: #5f5e66; line-height: 1.5; }
+.chart-requirements svg { flex: 0 0 auto; margin-top: 3px; color: #168664; }
+.target-chart-button { display: inline-flex; align-items: center; gap: 8px; padding: 9px 13px; border: 1px solid #d9e6e1; border-radius: 10px; color: #147559; background: #f1faf7; font-weight: 750; }
+.matplotlib-editor-panel .learning-code-editor .shared-editor-shell { height: clamp(390px,48vh,560px); }
+.matplotlib-runtime-status { margin: 0 16px 14px; display: flex; gap: 8px; align-items: center; color: #77767e; font-size: 12px; line-height: 1.5; }
+.matplotlib-runtime-status svg { color: #1b9b74; }
+.matplotlib-output { display: grid; gap: 14px; }
+.rendered-chart { margin: 0; padding: 12px; overflow: hidden; border: 1px solid #e0e0e6; border-radius: 13px; background: #fff; }
+.rendered-chart img { display: block; width: 100%; height: auto; max-height: 480px; object-fit: contain; }
+.rendered-chart figcaption { margin-top: 9px; color: var(--muted); font-size: 13px; }
+.matplotlib-output .result-banner { margin: 0; display: block; }
+.matplotlib-output .result-banner > div { flex-direction: row; align-items: center; }
+.matplotlib-output .result-banner ul { margin: 12px 0 0; padding: 0; display: grid; gap: 7px; list-style: none; }
+.matplotlib-output .result-banner li { display: flex; gap: 7px; align-items: flex-start; color: #64636c; font-size: 13px; line-height: 1.45; }
+.matplotlib-output .result-banner li.passed { color: #287456; }
+.matplotlib-output .result-banner li.missing { color: #a24b4b; }
+.matplotlib-output .result-banner li svg { flex: 0 0 auto; margin-top: 2px; }
+.python-error { display: flex; gap: 12px; padding: 15px; border-radius: 13px; color: #9b3f3f; background: #fff0ef; }
+.python-error svg { flex: 0 0 auto; }
+.python-error pre { margin: 8px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; font-size: 13px; }
+.target-chart-overlay { position: fixed; inset: 0; z-index: 300; padding: 28px; display: grid; place-items: center; background: rgba(28,28,33,.48); backdrop-filter: blur(8px); }
+.target-chart-overlay > div { position: relative; width: min(820px,100%); max-height: calc(100vh - 56px); overflow: auto; padding: 28px; border-radius: 24px; background: #fff; box-shadow: 0 28px 80px rgba(0,0,0,.2); }
+.target-chart-overlay h2 { margin: 0 48px 5px 0; font-size: 27px; }
+.target-chart-overlay > div > p { margin: 0 0 18px; color: var(--muted); }
+.target-chart-close { position: absolute; top: 18px; right: 18px; width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid #dedee5; border-radius: 12px; color: #666; background: #fff; }
+.project-chart-delivery { margin: 18px 0; display: grid; gap: 10px; }
+.project-chart-delivery .text-link { justify-self: start; }
+
+@media (max-width: 980px) {
+  .matplotlib-chapter-map { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .matplotlib-chapter-map button:last-child { grid-column: 1/-1; }
+  .matplotlib-learning-page.course-route .matplotlib-chapter-map { display: none; }
+}
+@media (max-width: 780px) {
+  .matplotlib-mini-path { grid-template-columns: 44px 1fr; padding: 19px; }
+  .matplotlib-mini-path > i { width: 44px; height: 44px; border-radius: 13px; }
+  .matplotlib-mini-path > button { grid-column: 1/-1; justify-content: center; }
+  .matplotlib-workspace { display: flex; flex-direction: column; }
+  .matplotlib-workspace .problem-panel { order: 1; max-height: none; }
+  .matplotlib-workspace .editor-panel { order: 2; }
+  .matplotlib-practice-page .workspace-panel { min-height: 0; }
+  .matplotlib-practice-page .problem-panel-scroll { overflow: visible; }
+  .matplotlib-practice-page .editor-panel { min-height: 720px; }
+  .target-chart-overlay { padding: 12px; }
+  .target-chart-overlay > div { max-height: calc(100vh - 24px); padding: 22px 16px; border-radius: 19px; }
+}
+@media (max-width: 480px) {
+  .matplotlib-chapter-map { grid-template-columns: 1fr; }
+  .matplotlib-chapter-map button:last-child { grid-column: auto; }
+  .matplotlib-mini-path { grid-template-columns: 1fr; }
+  .matplotlib-mini-path > i { margin-bottom: -3px; }
+  .expected-chart svg { min-height: 190px; padding-inline: 4px; }
+  .rendered-chart { padding: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .matplotlib-learning-page *, .matplotlib-practice-page *, .target-chart-overlay * { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
+
 /* 2026 information architecture: one calm navigation system */
 .app-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 80; width: 248px; padding: 26px 18px 20px; display: flex; flex-direction: column; background: rgba(251,251,253,.94); border-right: 1px solid #e5e5ea; backdrop-filter: blur(22px); }
 .sidebar-brand,.mobile-brand { border: 0; background: none; display: flex; align-items: center; gap: 11px; text-align: left; color: var(--ink); }
@@ -1148,6 +1240,8 @@ body { font-size: 16px; }
 .language-local-switch { width:max-content; margin-top:22px; padding:4px; display:flex; gap:3px; border-radius:12px; background:#ececf1; }
 .language-local-switch button { min-width:92px; min-height:37px; padding:0 14px; border:0; border-radius:9px; background:transparent; color:#717178; font-weight:700; }
 .language-local-switch button.active { background:#fff; color:#242329; box-shadow:0 2px 8px rgba(0,0,0,.07); }
+.language-local-switch.track-pandas button.active { color:#08775c; }
+.language-local-switch button:focus-visible,.module-map button:focus-visible,.lesson-subnav button:focus-visible,.project-tabs button:focus-visible,.mapping-sidebar button:focus-visible { outline:3px solid #8d87ff;outline-offset:3px }
 
 /* learning map and compressed lessons */
 .learning-map-page { width:min(1580px,calc(100% - 28px)); max-width:none; }
@@ -1156,7 +1250,9 @@ body { font-size: 16px; }
 .module-map button > span { font-size:11px;color:#999 }.module-map button strong{font-size:14px}.module-map button small{font-size:11px}.module-map button.active{border-color:#7770f6;background:#f1efff;color:#272633;box-shadow:0 8px 24px rgba(92,83,225,.09)}
 .lesson-workspace { display:grid;grid-template-columns:minmax(0,1fr) 218px;gap:16px;align-items:start }
 .lesson-subnav { order:2;position:sticky;top:24px;padding:14px;border:1px solid #e7e7ec;border-radius:18px;background:#fff;display:flex;flex-direction:column;gap:6px }.lesson-subnav>strong{padding:7px 9px 13px;font-size:13px;color:#777}.lesson-subnav button{padding:12px 9px;border:0;border-radius:11px;background:none;display:grid;grid-template-columns:24px 1fr;gap:8px;text-align:left;align-items:start}.lesson-subnav button.active{background:#efedff;color:#514adb}.lesson-subnav button>span{font-size:11px}.lesson-subnav button div{display:flex;flex-direction:column;gap:4px}.lesson-subnav button b{font-size:13px}.lesson-subnav button small{font-size:10px;color:#999;line-height:1.35}
-.compact-lesson { order:1;min-width:0; padding:28px 30px; border:1px solid #e7e7ec;border-radius:24px;background:#fff }.compact-lesson>header{padding-bottom:24px;border-bottom:1px solid #ececef}.compact-lesson>header span{font-size:11px;font-weight:800;letter-spacing:.15em;color:#655ef5}.compact-lesson>header h2{margin:8px 0;font-size:38px;letter-spacing:-.045em}.compact-lesson>header p{margin:0;color:var(--muted);font-size:15px;line-height:1.7}
+.compact-lesson { order:1;min-width:0; padding:28px 30px; border:1px solid #e7e7ec;border-radius:24px;background:#fff }.compact-lesson>header{padding-bottom:24px;border-bottom:1px solid #ececef}.compact-lesson>header span{font-size:11px;font-weight:800;letter-spacing:.15em;color:#655ef5}.compact-lesson>header :is(h1,h2){margin:8px 0;font-size:38px;letter-spacing:-.045em}.compact-lesson>header p{margin:0;color:var(--muted);font-size:15px;line-height:1.7}
+.track-pandas .module-map button.active{border-color:#28a77e;background:#ebfaf4;color:#145d49;box-shadow:0 8px 24px rgba(27,145,106,.09)}.track-pandas .lesson-subnav button.active{background:#e9f8f2;color:#08775c}.track-pandas .compact-lesson>header span{color:#168664}.track-pandas .compact-block-title i{background:#e9f8f2;color:#168664}
+.lesson-mobile-back{display:none}
 .compact-lesson .code-block pre{white-space:pre-wrap;overflow-x:visible;overflow-wrap:anywhere;word-break:break-word}
 .compact-lesson-block { padding:30px 0;border-bottom:1px solid #ededf0 }.compact-block-title{display:flex;align-items:center;gap:11px;margin-bottom:18px}.compact-block-title i{width:35px;height:35px;border-radius:10px;background:#efedff;color:#625bf6;display:grid;place-items:center}.compact-block-title svg{width:18px}.compact-block-title h3{margin:0;font-size:22px}
 .lesson-question { padding:22px;border-radius:15px;background:#f7f7fa }.lesson-question strong{font-size:17px}.lesson-question p{font-size:19px;font-weight:700}.lesson-question span{color:var(--muted);line-height:1.65}
@@ -1175,10 +1271,10 @@ body { font-size: 16px; }
 .library-only{padding-top:64px}.library-only .problem-card{min-height:112px}.library-only .problem-main{gap:8px}.library-only .problem-title-row strong{font-size:18px}.library-only .problem-source{display:none}.library-only .section-heading{align-items:end}.playground-page .playground-main,.pandas-playground-page .pandas-playground-main{width:min(1240px,calc(100% - 48px));margin:0 auto;padding-top:38px}.playground-page .playground-grid{min-height:520px}.playground-page .editor-shell{min-height:430px}.playground-page .playground-schema{margin-bottom:45px}
 
 @media (max-width: 980px){
-  .app-sidebar{display:none}.mobile-app-bar{position:sticky;top:0;z-index:80;height:58px;padding:0 18px;display:flex;justify-content:space-between;align-items:center;background:rgba(251,251,253,.94);border-bottom:1px solid #e5e5ea;backdrop-filter:blur(18px)}.mobile-app-bar>button:last-child{width:38px;height:38px;border:0;border-radius:10px;background:#f0efff;color:#5c55ef}.mobile-bottom-nav{position:fixed;inset:auto 0 0;z-index:90;height:62px;padding:5px 8px max(5px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr);background:rgba(252,252,253,.96);border-top:1px solid #dedee4;backdrop-filter:blur(18px)}.mobile-bottom-nav button{border:0;background:none;color:#888;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px}.mobile-bottom-nav button.active{color:#5d56ef}.atlas-page,.home-page:has(.app-sidebar),.learning-page:has(.app-sidebar),.comparison-page:has(.app-sidebar),.playground-page:has(.app-sidebar),.pandas-playground-page:has(.app-sidebar){padding-left:0;padding-bottom:65px}.atlas-main{width:min(100% - 32px,900px);padding:38px 0 70px}.compact-hero{grid-template-columns:1fr;min-height:auto;padding:38px}.hero-flow{display:none}.module-map{grid-template-columns:repeat(2,1fr)}.lesson-workspace{grid-template-columns:1fr}.lesson-subnav{order:1;position:static;display:grid;grid-template-columns:repeat(2,1fr)}.compact-lesson{order:2}.transformation-flow{grid-template-columns:1fr;grid-template-areas:"input" "output" "code"}.quick-entry-grid{grid-template-columns:1fr 1fr}.quick-entry-grid>:last-child{grid-column:1/-1}.project-tabs{grid-template-columns:1fr 1fr}.report-mastery{grid-template-columns:1fr}
+  .app-sidebar{display:none}.mobile-app-bar{position:sticky;top:0;z-index:80;height:58px;padding:0 18px;display:flex;justify-content:space-between;align-items:center;background:rgba(251,251,253,.94);border-bottom:1px solid #e5e5ea;backdrop-filter:blur(18px)}.mobile-app-bar>button:last-child{width:38px;height:38px;border:0;border-radius:10px;background:#f0efff;color:#5c55ef}.mobile-bottom-nav{position:fixed;inset:auto 0 0;z-index:90;height:62px;padding:5px 8px max(5px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(5,1fr);background:rgba(252,252,253,.96);border-top:1px solid #dedee4;backdrop-filter:blur(18px)}.mobile-bottom-nav button{border:0;background:none;color:#888;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10px}.mobile-bottom-nav button.active{color:#5d56ef}.atlas-page,.home-page:has(.app-sidebar),.learning-page:has(.app-sidebar),.comparison-page:has(.app-sidebar),.playground-page:has(.app-sidebar),.pandas-playground-page:has(.app-sidebar){padding-left:0;padding-bottom:65px}.atlas-main{width:min(100% - 32px,900px);padding:38px 0 70px}.compact-hero{grid-template-columns:1fr;min-height:auto;padding:38px}.hero-flow{display:none}.module-map{grid-template-columns:repeat(2,1fr)}.lesson-workspace{grid-template-columns:1fr}.lesson-subnav{order:1;position:static;display:grid;grid-template-columns:repeat(2,1fr)}.compact-lesson{order:2}.learning-page.map-route .compact-lesson{display:none}.learning-page.course-route .learning-map-overview,.learning-page.course-route .module-map,.learning-page.course-route .lesson-subnav{display:none}.learning-page.course-route .lesson-workspace{display:block}.learning-page.course-route .compact-lesson{display:block}.lesson-mobile-back{display:inline-flex;align-items:center;gap:7px;margin-bottom:20px;color:#5952d9;font-size:14px;font-weight:750}.track-pandas .lesson-mobile-back{color:#08775c}.transformation-flow{grid-template-columns:1fr;grid-template-areas:"input" "output" "code"}.quick-entry-grid{grid-template-columns:1fr 1fr}.quick-entry-grid>:last-child{grid-column:1/-1}.project-tabs{grid-template-columns:1fr 1fr}.report-mastery{grid-template-columns:1fr}
 }
 @media (max-width: 600px){
-  .atlas-main{width:calc(100% - 24px);padding-top:26px}.page-title h1,.library-only .section-heading h1{font-size:34px}.compact-hero{padding:28px 22px;border-radius:21px}.compact-hero h1{font-size:38px}.compact-hero p{font-size:15px}.hero-actions{align-items:stretch}.hero-actions button{justify-content:center}.quick-entry-grid,.dual-progress-grid,.compact-concepts,.compact-mistakes,.report-stats,.project-tabs{grid-template-columns:1fr}.quick-entry-grid>:last-child{grid-column:auto}.quick-entry-card{min-height:175px}.stage-map>div:last-child{grid-template-columns:1fr 1fr}.module-map{display:flex;overflow-x:auto;padding-bottom:5px}.module-map button{min-width:155px}.lesson-subnav{display:flex;overflow-x:auto}.lesson-subnav button{min-width:190px}.compact-lesson{padding:24px 18px}.compact-lesson>header h2{font-size:31px}.compact-block-title h3{font-size:19px}.project-case{padding:22px 16px}.project-stage-body{padding-left:0}.dual-code-grid{grid-template-columns:1fr!important}.compact-recent>div:last-child button{grid-template-columns:auto 1fr auto}.compact-recent button small{display:none}.library-only{padding-top:26px}.library-only .section-heading{align-items:stretch}.library-only .section-heading .search-box{display:flex;width:100%}.library-controls{align-items:stretch}.library-selects{display:grid;grid-template-columns:1fr 1fr}.problem-card{grid-template-columns:36px 1fr auto!important;padding:17px 12px!important}.completion-state{font-size:0!important}.completion-state svg{margin:0}.problem-arrow{display:none}.playground-page .playground-main,.pandas-playground-page .pandas-playground-main{width:calc(100% - 24px);padding-top:24px}.mobile-bottom-nav span{max-width:55px;white-space:nowrap}.heatmap-grid{grid-template-rows:repeat(7,9px);grid-auto-columns:9px;gap:3px}.heatmap-grid span,.heatmap-legend i{width:9px;height:9px}
+  .atlas-main{width:calc(100% - 24px);padding-top:26px}.page-title h1,.library-only .section-heading h1{font-size:34px}.compact-hero{padding:28px 22px;border-radius:21px}.compact-hero h1{font-size:38px}.compact-hero p{font-size:15px}.hero-actions{align-items:stretch}.hero-actions button{justify-content:center}.quick-entry-grid,.dual-progress-grid,.compact-concepts,.compact-mistakes,.report-stats,.project-tabs{grid-template-columns:1fr}.quick-entry-grid>:last-child{grid-column:auto}.quick-entry-card{min-height:175px}.stage-map>div:last-child{grid-template-columns:1fr 1fr}.module-map{display:grid;grid-template-columns:1fr 1fr;overflow:visible;padding-bottom:5px}.module-map button{min-width:0;min-height:72px;padding:11px}.lesson-subnav{display:flex;overflow-x:auto}.lesson-subnav button{min-width:190px}.learning-page.course-route .lesson-subnav{display:none}.compact-lesson{padding:24px 18px}.compact-lesson>header :is(h1,h2){font-size:31px}.compact-block-title h3{font-size:19px}.project-case{padding:22px 16px}.project-stage-body{padding-left:0}.dual-code-grid{grid-template-columns:1fr!important}.compact-recent>div:last-child button{grid-template-columns:auto 1fr auto}.compact-recent button small{display:none}.library-only{padding-top:26px}.library-only .section-heading{align-items:stretch}.library-only .section-heading .search-box{display:flex;width:100%}.library-controls{align-items:stretch}.library-selects{display:grid;grid-template-columns:1fr 1fr}.problem-card{grid-template-columns:36px 1fr auto!important;padding:17px 12px!important}.completion-state{font-size:0!important}.completion-state svg{margin:0}.problem-arrow{display:none}.playground-page .playground-main,.pandas-playground-page .pandas-playground-main{width:calc(100% - 24px);padding-top:24px}.mobile-bottom-nav span{max-width:55px;white-space:nowrap}.heatmap-grid{grid-template-rows:repeat(7,9px);grid-auto-columns:9px;gap:3px}.heatmap-grid span,.heatmap-legend i{width:9px;height:9px}
 }
 
 /* A rounder, larger code face across lessons, editors and examples */
@@ -1339,9 +1435,12 @@ pre,
 .mapping-detail, .dual-case-card { padding: clamp(22px, 3vw, 42px); border: 1px solid #e1e0e6; border-radius: 22px; background: #fff; box-shadow: 0 14px 42px rgba(31,30,55,.055); }
 .mapping-detail > h2 { margin: 7px 0; font-size: 28px; }
 .mapping-relation { margin: 0 0 22px; color: var(--muted); font-size: 16px; }
-.dual-code-grid, .dual-intermediate-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 18px 0; }
+.dual-code-grid, .dual-intermediate-grid { display: grid; gap: 14px; margin: 18px 0; }
+.dual-code-grid { grid-template-columns: minmax(0, 1fr); gap: 22px; }
+.dual-intermediate-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .dual-code-grid article { min-width: 0; }
 .dual-code-grid .comparison-label { display: inline-flex; margin-bottom: 8px; }
+.dual-code-grid .code-block pre { white-space: pre-wrap; overflow-x: visible; overflow-wrap: anywhere; word-break: normal; }
 .dual-intermediate-grid > div { min-width: 0; }
 .dual-intermediate-grid h3 { margin: 0 0 9px; font-size: 16px; }
 .comparison-final { display: flex; align-items: center; gap: 11px; margin: 22px 0 10px; color: #147a58; }
@@ -1517,6 +1616,10 @@ pre,
 .question-nav button { justify-content: center; padding: 0 11px; font-weight: 650; }
 
 @media (max-width: 780px) {
+  .workspace-grid { padding: 10px; grid-template-columns: 1fr; }
+  .workspace-panel { height: auto; min-height: 590px; grid-column: auto; }
+  .problem-panel { max-height: 680px; }
+  .editor-panel { min-height: 680px; }
   .practice-pagination { align-items: stretch; flex-direction: column; }
   .practice-pagination > div { overflow-x: auto; padding-bottom: 2px; }
   .editor-title-tools { gap: 8px !important; }

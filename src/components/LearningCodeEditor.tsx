@@ -13,6 +13,7 @@ interface LearningCodeEditorProps {
   fileName: string
   environment: string
   runLabel: string
+  editorLabel?: string
   disabled?: boolean
   onChange: (value: string) => void
   onRun: () => void
@@ -22,7 +23,7 @@ const DEFAULT_SIZE = 20
 const MIN_SIZE = 16
 const MAX_SIZE = 30
 
-export function LearningCodeEditor({ language, value, tables = [], fileName, environment, runLabel, disabled, onChange, onRun }: LearningCodeEditorProps) {
+export function LearningCodeEditor({ language, value, tables = [], fileName, environment, runLabel, editorLabel, disabled, onChange, onRun }: LearningCodeEditorProps) {
   const storageKey = `sql-learning-lab:${language}-editor-font-size:v2`
   const [fontSize, setFontSize] = useState(() => {
     const stored = Number(localStorage.getItem(storageKey))
@@ -90,7 +91,7 @@ export function LearningCodeEditor({ language, value, tables = [], fileName, env
 
   return <div className="learning-code-editor">
     <div className="workspace-panel-title">
-      <strong>{language === 'sql' ? 'SQL 编辑器' : 'Pandas 编辑器'}</strong>
+      <strong>{editorLabel ?? (language === 'sql' ? 'SQL 编辑器' : 'Pandas 编辑器')}</strong>
       <div className="editor-title-tools">
         <div className="editor-zoom-controls" aria-label="编辑器字号">
           <button disabled={fontSize === MIN_SIZE} onClick={() => resize(-2)} aria-label="缩小编辑器文字"><Minus size={15} /></button>
@@ -110,7 +111,7 @@ export function LearningCodeEditor({ language, value, tables = [], fileName, env
           <textarea ref={textareaRef} value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={keyDown} onScroll={(event) => {
             if (highlightRef.current) { highlightRef.current.scrollTop = event.currentTarget.scrollTop; highlightRef.current.scrollLeft = event.currentTarget.scrollLeft }
             if (numbersRef.current) numbersRef.current.scrollTop = event.currentTarget.scrollTop
-          }} spellCheck={false} aria-label={language === 'sql' ? 'SQL 编辑器' : 'Pandas 编辑器'} />
+          }} spellCheck={false} aria-label={editorLabel ?? (language === 'sql' ? 'SQL 编辑器' : 'Pandas 编辑器')} />
         </div>
       </div>
       <div className="editor-status"><span>Ln {lines.length}</span><span>Ctrl + Enter · {language === 'python' ? 'Python / Pandas' : 'SQL'}</span></div>

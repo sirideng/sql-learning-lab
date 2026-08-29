@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { AppHeader, type AppSection } from '../components/AppHeader'
+import { TrackTabs } from '../components/TrackTabs'
 import { getProblemProgress } from '../services/storage'
 import type { Difficulty, LearningLanguage, ProgressMap } from '../types/problem'
 
@@ -51,7 +52,7 @@ interface LibraryViewState {
   chapter: string
   difficulty: DifficultyFilter
   page: number
-  wrongLanguage: '全部语言' | 'SQL' | 'Pandas'
+  wrongLanguage: '全部语言' | 'SQL' | 'Pandas' | 'Matplotlib'
   knowledge: string
 }
 
@@ -65,7 +66,7 @@ function loadLibraryView(chapters: string[]): LibraryViewState {
       chapter: typeof saved.chapter === 'string' && chapters.includes(saved.chapter) ? saved.chapter : defaults.chapter,
       difficulty: difficultyFilters.includes(saved.difficulty as DifficultyFilter) ? saved.difficulty as DifficultyFilter : defaults.difficulty,
       page: typeof saved.page === 'number' && Number.isInteger(saved.page) && saved.page > 0 ? saved.page : defaults.page,
-      wrongLanguage: ['全部语言', 'SQL', 'Pandas'].includes(saved.wrongLanguage ?? '') ? saved.wrongLanguage as LibraryViewState['wrongLanguage'] : defaults.wrongLanguage,
+      wrongLanguage: ['全部语言', 'SQL', 'Pandas', 'Matplotlib'].includes(saved.wrongLanguage ?? '') ? saved.wrongLanguage as LibraryViewState['wrongLanguage'] : defaults.wrongLanguage,
       knowledge: typeof saved.knowledge === 'string' ? saved.knowledge : defaults.knowledge,
     }
   } catch {
@@ -165,16 +166,16 @@ export function HomePage({ problems, allProblems, progress, onOpen, onOpenQuesti
         <section ref={libraryRef} className={`library-section ${libraryOnly ? 'library-only' : ''}`}>
           <div className="section-heading">
             <div>
-              <span className="eyebrow">PRACTICE LAB</span>
+              <span className="eyebrow">{libraryOnly ? `${languageMode.toUpperCase()} TRACK · ` : ''}PRACTICE LAB</span>
               {libraryOnly ? <h1>{languageMode === 'sql' ? 'SQL' : 'Pandas'} 数据分析练习</h1> : <h2>题库</h2>}
           {libraryOnly && <p className="section-description">{problems.length} 道题，从基础操作逐步走向用户与商业数据分析。</p>}
             </div>
             <label className="search-box">
               <Search size={17} />
-              <input value={search} onChange={(event) => { setSearch(event.target.value); resetPage() }} placeholder="搜索题目或标签" />
+              <input aria-label="搜索题目或标签" value={search} onChange={(event) => { setSearch(event.target.value); resetPage() }} placeholder="搜索题目或标签" />
             </label>
           </div>
-          {libraryOnly && <div className="language-local-switch" aria-label="练习语言"><button className={languageMode === 'sql' ? 'active' : ''} onClick={() => { window.location.hash = '/practice' }}>SQL</button><button className={languageMode === 'pandas' ? 'active' : ''} onClick={() => { window.location.hash = '/pandas/practice' }}>Pandas</button></div>}
+          {libraryOnly && <TrackTabs value={languageMode} label="练习语言" onChange={(value) => { window.location.hash = value === 'sql' ? '/practice' : '/pandas/practice' }} />}
           <div className="library-controls"><div className="filter-row">
             {filters.map((item) => (
               <button key={item} className={filter === item ? 'active' : ''} onClick={() => { setFilter(item); if (item === '错题') setChapter('全部章节'); resetPage() }}>
@@ -185,7 +186,7 @@ export function HomePage({ problems, allProblems, progress, onOpen, onOpenQuesti
             <select aria-label="按难度筛选" value={difficulty} onChange={(event) => { setDifficulty(event.target.value as (typeof difficultyFilters)[number]); resetPage() }}>
               {difficultyFilters.map((item) => <option key={item}>{item}</option>)}
             </select>
-            {filter === '错题' ? <><select aria-label="按语言筛选错题" value={wrongLanguage} onChange={(event) => { setWrongLanguage(event.target.value as LibraryViewState['wrongLanguage']); setChapter('全部章节'); resetPage() }}><option>全部语言</option><option>SQL</option><option>Pandas</option></select><select aria-label="按知识点筛选错题" value={knowledge} onChange={(event) => { setKnowledge(event.target.value); setChapter('全部章节'); resetPage() }}>{['全部知识点', '筛选', '连接 JOIN / merge', '分组 GROUP BY / groupby', '窗口 Window / shift', '日期 Date', '清洗与字符串', '重塑 Pivot'].map((item) => <option key={item}>{item}</option>)}</select></> : <select aria-label="按章节筛选" value={chapter} onChange={(event) => { setChapter(event.target.value); resetPage() }}>{chapters.map((item) => <option key={item}>{item}</option>)}</select>}
+            {filter === '错题' ? <><select aria-label="按语言筛选错题" value={wrongLanguage} onChange={(event) => { setWrongLanguage(event.target.value as LibraryViewState['wrongLanguage']); setChapter('全部章节'); resetPage() }}><option>全部语言</option><option>SQL</option><option>Pandas</option><option>Matplotlib</option></select><select aria-label="按知识点筛选错题" value={knowledge} onChange={(event) => { setKnowledge(event.target.value); setChapter('全部章节'); resetPage() }}>{['全部知识点', '筛选', '连接 JOIN / merge', '分组 GROUP BY / groupby', '窗口 Window / shift', '日期 Date', '清洗与字符串', '重塑 Pivot', '可视化 Matplotlib'].map((item) => <option key={item}>{item}</option>)}</select></> : <select aria-label="按章节筛选" value={chapter} onChange={(event) => { setChapter(event.target.value); resetPage() }}>{chapters.map((item) => <option key={item}>{item}</option>)}</select>}
           </div></div>
 
           <div className="problem-list">
@@ -197,7 +198,7 @@ export function HomePage({ problems, allProblems, progress, onOpen, onOpenQuesti
                   <span className="problem-main">
                     <span className="problem-title-row">
                       <strong>{problem.title}</strong>
-                      <span className={`language-badge ${problem.language ?? 'sql'}`}>{(problem.language ?? 'sql') === 'pandas' ? 'Pandas' : 'SQL'}</span>
+                      <span className={`language-badge ${problem.language ?? 'sql'}`}>{problem.language === 'matplotlib' ? 'Matplotlib' : problem.language === 'pandas' ? 'Pandas' : 'SQL'}</span>
                       <span className={`difficulty ${problem.difficulty}`}>{problem.difficulty}</span>
                     </span>
                     <span className="problem-tags">
@@ -238,13 +239,14 @@ export function HomePage({ problems, allProblems, progress, onOpen, onOpenQuesti
           </nav>}
         </section>
       </main>
-      <footer>{languageMode === 'pandas' ? 'Pandas Learning Lab' : 'SQL Learning Lab'} · Built for deliberate practice</footer>
+      <footer>Data Learning Lab · SQL + Pandas workspace</footer>
     </div>
   )
 }
 
 function normalizeKnowledge(tags: string[]) {
   const text = tags.join(' ').toLowerCase()
+  if (/matplotlib|plot|bar|hist|scatter|可视化/.test(text)) return '可视化 Matplotlib'
   if (/join|merge/.test(text)) return '连接 JOIN / merge'
   if (/group|聚合|sum|avg|mean/.test(text)) return '分组 GROUP BY / groupby'
   if (/window|shift|diff|rank|cumsum|rolling|transform/.test(text)) return '窗口 Window / shift'

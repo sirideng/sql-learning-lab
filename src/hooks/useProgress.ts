@@ -23,7 +23,7 @@ export function useProgress() {
     setProgress((current) => updateProblemProgress(current, id, { draft }))
   }, [])
 
-  const recordAttempt = useCallback((id: string, correct: boolean, draft: string, language: 'sql' | 'pandas' = 'sql', errorReason?: string) => {
+  const recordAttempt = useCallback((id: string, correct: boolean, draft: string, language: 'sql' | 'pandas' | 'matplotlib' = 'sql', errorReason?: string) => {
     setActivity((current) => recordActivity(current))
     setProgress((current) => {
       const item = getProblemProgress(current, id)

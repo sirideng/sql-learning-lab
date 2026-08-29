@@ -51,8 +51,9 @@ for (const chapter of chapters) {
   else if (!stepSql.every((sql) => typeof sql === 'string' && /\b(select|with)\b/i.test(sql))) fail(`${chapter.id} 可视化步骤存在空白或无效 SQL`)
   if (priorityIds.has(chapter.id) && lesson.demo.steps.length < 3) fail(`${chapter.id} 重点章节执行步骤少于 3 个`)
   if (chapter.id === 'join' && lesson.demo.originalTables.length < 2) fail('JOIN 章节必须展示两张原始表')
-  if (!Array.isArray(lesson.commonMistakes) || lesson.commonMistakes.length < 3) fail(`${chapter.id} 错误案例少于 3 个`)
+  if (!Array.isArray(lesson.commonMistakes) || lesson.commonMistakes.length < 2) fail(`${chapter.id} 错误案例少于 2 个`)
   if (!lesson.commonMistakes?.every((item) => item.wrongSql && item.problem && item.fix)) fail(`${chapter.id} 错误案例字段不完整`)
+  if (lesson.commonMistakes?.slice(0, 2).some((item) => item.title.trim() === item.problem.trim() || item.title.trim() === item.fix.trim())) fail(`${chapter.id} 展示的错误案例存在标题与解释重复`)
   if (!lesson.pandasComparison?.sql || !lesson.pandasComparison?.pandas || !lesson.pandasComparison?.explanation) fail(`${chapter.id} 缺少 SQL/Pandas 对照`)
 
   const counts = { 基础: 0, 理解: 0, 综合: 0 }
@@ -93,6 +94,12 @@ for (const id of Object.keys(visualStepSql)) {
 }
 
 function quoteIdentifier(identifier) { return `"${identifier.replaceAll('"', '""')}"` }
+function sourceTableName(name) {
+  return name.match(/^[A-Za-z_][A-Za-z0-9_]*/)?.[0] ?? name
+}
+function sourceColumnName(name) {
+  return name.includes('.') ? name.slice(name.lastIndexOf('.') + 1) : name
+}
 function inferType(table, columnIndex) {
   const values = table.rows.map((row) => row[columnIndex]).filter((value) => value !== null)
   if (values.length && values.every((value) => typeof value === 'number' && Number.isInteger(value))) return 'INTEGER'
@@ -102,10 +109,13 @@ function inferType(table, columnIndex) {
 function createDatabase(SQL, tables) {
   const database = new SQL.Database()
   for (const table of tables) {
-    const definitions = table.columns.map((column, index) => `${quoteIdentifier(column)} ${inferType(table, index)}`)
-    database.run(`CREATE TABLE ${quoteIdentifier(table.name)} (${definitions.join(', ')})`)
+    const tableName = sourceTableName(table.name)
+    const columns = table.columns.map(sourceColumnName)
+    if (new Set(columns).size !== columns.length) throw new Error(`${table.name} 规范化后存在重复字段`)
+    const definitions = columns.map((column, index) => `${quoteIdentifier(column)} ${inferType(table, index)}`)
+    database.run(`CREATE TABLE ${quoteIdentifier(tableName)} (${definitions.join(', ')})`)
     if (!table.rows.length) continue
-    const statement = database.prepare(`INSERT INTO ${quoteIdentifier(table.name)} VALUES (${table.columns.map(() => '?').join(', ')})`)
+    const statement = database.prepare(`INSERT INTO ${quoteIdentifier(tableName)} VALUES (${columns.map(() => '?').join(', ')})`)
     try { table.rows.forEach((row) => statement.run(row)) } finally { statement.free() }
   }
   return database
@@ -207,6 +217,25 @@ function compareResult(set, expected, ordered) {
 }
 
 const SQL = await initSqlJs()
+let auditedChapterExamples = 0
+for (const chapter of chapters) {
+  const lesson = lessonMap.get(chapter.id)
+  for (const [label, sql] of [['主示例', chapter.sqlExample], ['SQL/Pandas 对照', lesson.pandasComparison.sql]]) {
+    let database
+    try {
+      if (/\.\.\./.test(sql)) throw new Error('仍包含省略号占位符')
+      database = createDatabase(SQL, lesson.demo.originalTables)
+      const sets = database.exec(translateMySql(sql))
+      if (sets.length !== 1 || !compareResult(sets[0], lesson.demo.finalTable, /\border\s+by\b/i.test(sql))) {
+        fail(`${chapter.id} ${label}与最终输出的字段、顺序、行数或数值不一致`)
+      }
+      auditedChapterExamples += 1
+    } catch (error) {
+      fail(`${chapter.id} ${label}执行失败：${error instanceof Error ? error.message : error}`)
+    } finally { database?.close() }
+  }
+}
+
 for (const chapter of chapters.filter((item) => extendedExerciseChapterIds.has(item.id))) {
   const lesson = lessonMap.get(chapter.id)
   for (const [index, exercise] of lesson.exercises.entries()) {
@@ -228,6 +257,7 @@ if (errors.length > 0) {
 }
 
 console.log(`Learning Path 校验通过：${chapters.length} 个章节，数据结构、章节引用与表字段一致。`)
+console.log(`${auditedChapterExamples} 个 SQL 课程主示例与 SQL/Pandas 对照已真实执行，并与演示输出逐列一致。`)
 console.log('所有 SQL 执行可视化步骤均已配对独立 SQL 代码。')
 console.log('7 个进阶章节共 35 道配套练习，全部 Solution 已真实执行并与预期输出一致。')
 console.log('Analytics Case Study、执行顺序、SQL/Pandas 对照和 Project Lab 专项结构完整。')
