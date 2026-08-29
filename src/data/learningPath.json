@@ -80,15 +80,7 @@
     "takeaways": ["结果仍保持原粒度", "窗口范围随当前行变化", "排序是累计计算的前提"], "practiceIds": ["order-count-window", "department-average-salary-window", "event-row-number", "user-order-sequence", "previous-day-sales", "daily-cumulative-profit", "customer-spend-rank", "moving-average-7d", "regional-user-spend-rank", "monthly-cumulative-sales"]
   },
   {
-    "id": "analytics-project", "order": 11, "title": "综合分析", "subtitle": "从业务问题到可解释 SQL", "visualType": "project",
-    "description": "综合查询、清洗、聚合、连接与窗口函数完成用户和销售分析。",
-    "theory": ["先写清楚结果一行代表什么。", "把复杂 SQL 拆成多个可单独验证的 CTE。", "每一步都检查行数、主键和 NULL，再进入下一步。"],
-    "pandasBridge": "像 Pandas pipeline 一样，将 SQL 写成一条可检查的数据转换链。",
-    "sqlExample": "WITH cleaned AS (...),\nuser_metrics AS (...),\nranked AS (...)\nSELECT * FROM ranked;",
-    "takeaways": ["问题先于语法", "逐步验证中间表", "结果必须能解释业务"], "practiceIds": ["repeat-purchase-rate", "next-day-retention", "monthly-revenue", "repeat-buyer-rate", "daily-active-users", "signup-next-day-retention", "three-day-login-streak", "purchase-funnel-summary", "customer-value-segment"]
-  },
-  {
-    "id":"date-functions","order":12,"title":"日期函数 Date Functions","subtitle":"把时间字段转换为可分析的周期与间隔","visualType":"date",
+    "id":"date-functions","order":11,"title":"日期函数 Date Functions","subtitle":"把时间字段转换为可分析的周期与间隔","visualType":"date",
     "description":"从月销售趋势到注册后第 N 天留存，掌握真实分析中最常用的日期提取、格式化与偏移。",
     "theory":["日期函数把时间戳转换为年、月、日等分析维度。","DATEDIFF 衡量两个日期之间的间隔。","DATE_ADD 与 DATE_SUB 用于构造观察窗口。"],
     "pandasBridge":"DATE_FORMAT / DATEDIFF / DATE_ADD 对应 Pandas 的 dt.to_period、日期相减与 Timedelta。",
@@ -96,7 +88,7 @@
     "takeaways":["能提取年/月/日","能计算日期差","能构造留存观察日期"],"practiceIds":["monthly-sales-summary","signup-next-day-retention","next-day-retention"]
   },
   {
-    "id":"string-functions","order":13,"title":"字符串函数 String Functions","subtitle":"清洗、拆分、标准化业务文本","visualType":"string",
+    "id":"string-functions","order":12,"title":"字符串函数 String Functions","subtitle":"清洗、拆分、标准化业务文本","visualType":"string",
     "description":"处理脏用户名、商品名称、邮箱域名与手机号脱敏，将半结构化文本转成稳定分析维度。",
     "theory":["LOWER/UPPER 统一大小写。","SUBSTRING 与 REPLACE 提取或替换文本。","CONCAT 将多个字段组合成展示值。"],
     "pandasBridge":"SQL 字符串函数对应 Pandas 的 Series.str 方法。",
@@ -104,12 +96,20 @@
     "takeaways":["会标准化大小写","会提取和替换子串","能安全展示敏感文本"],"practiceIds":["email-domain-summary","customer-name-prefix","readable-order-status"]
   },
   {
-    "id":"cte","order":14,"title":"CTE（WITH）","subtitle":"把企业级 SQL 拆成可验证步骤","visualType":"cte",
+    "id":"cte","order":13,"title":"CTE（WITH）","subtitle":"把企业级 SQL 拆成可验证步骤","visualType":"cte",
     "description":"用命名中间表替代层层嵌套的子查询，让复杂用户、订单和指标分析更易读、更可检查。",
     "theory":["CTE 只在当前语句作用域内存在。","多个 CTE 可以按依赖顺序串联。","每个 CTE 应保持单一职责和明确粒度。"],
     "pandasBridge":"CTE 对应给中间 DataFrame 命名并按 pipeline 逐步转换。",
     "sqlExample":"WITH user_spend AS (SELECT user_id, SUM(amount) total FROM orders GROUP BY user_id)\nSELECT * FROM user_spend;",
     "takeaways":["会把子查询改写为 WITH","会设计多层 CTE","会逐层验证中间结果"],"practiceIds":["repeat-buyer-rate","regional-user-spend-rank","monthly-cumulative-sales"]
+  },
+  {
+    "id": "analytics-project", "order": 14, "title": "综合分析", "subtitle": "从业务问题到可解释 SQL", "visualType": "project",
+    "description": "综合查询、清洗、聚合、连接与窗口函数完成用户和销售分析。",
+    "theory": ["先写清楚结果一行代表什么。", "把复杂 SQL 拆成多个可单独验证的 CTE。", "每一步都检查行数、主键和 NULL，再进入下一步。"],
+    "pandasBridge": "像 Pandas pipeline 一样，将 SQL 写成一条可检查的数据转换链。",
+    "sqlExample": "WITH cleaned AS (...),\nuser_metrics AS (...),\nranked AS (...)\nSELECT * FROM ranked;",
+    "takeaways": ["问题先于语法", "逐步验证中间表", "结果必须能解释业务"], "practiceIds": ["repeat-purchase-rate", "next-day-retention", "monthly-revenue", "repeat-buyer-rate", "daily-active-users", "signup-next-day-retention", "three-day-login-streak", "purchase-funnel-summary", "customer-value-segment"]
   },
   {
     "id":"analytics-cases","order":15,"title":"SQL 数据分析案例","subtitle":"从业务问题到指标解释的完整项目","visualType":"analytics",

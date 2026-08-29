@@ -9,6 +9,8 @@
     "lint": "eslint .",
     "validate:learning": "node scripts/validate-learning-path.mjs",
     "validate:questions": "node scripts/validate-question-bank.mjs",
+    "validate:pandas": "node scripts/validate-pandas-content.mjs",
+    "validate:storage": "node scripts/validate-storage-migration.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

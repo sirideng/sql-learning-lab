@@ -1,6 +1,7 @@
 import { BarChart3, CheckCircle2, Database, FlaskConical, GraduationCap, RotateCcw } from 'lucide-react'
 
 export type AppSection = 'dashboard' | 'learn' | 'practice' | 'playground'
+export type LearningMode = 'sql' | 'pandas' | 'compare'
 
 interface AppHeaderProps {
   completed: number
@@ -10,6 +11,7 @@ interface AppHeaderProps {
   onReset?: () => void
   currentSection?: AppSection
   onNavigateSection?: (section: AppSection) => void
+  mode?: LearningMode
 }
 
 const navigation = [
@@ -19,16 +21,25 @@ const navigation = [
   { id: 'playground' as const, label: 'Playground', icon: FlaskConical },
 ]
 
-export function AppHeader({ completed, total, compact, onHome, onReset, currentSection, onNavigateSection }: AppHeaderProps) {
+export function AppHeader({ completed, total, compact, onHome, onReset, currentSection, onNavigateSection, mode = 'sql' }: AppHeaderProps) {
+  const switchMode = (nextMode: LearningMode) => {
+    window.location.hash = nextMode === 'sql' ? '/learn' : nextMode === 'pandas' ? '/pandas/learn' : '/compare'
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
   return (
     <header className={`app-header ${compact ? 'compact' : ''}`}>
       <button className="brand" onClick={onHome} aria-label="返回题库首页">
         <span className="brand-mark"><Database size={20} strokeWidth={2.3} /></span>
         <span>
-          <strong>SQL Learning Lab</strong>
-          {!compact && <small>Visualize the logic.</small>}
+          <strong>Data Learning Lab</strong>
+          {!compact && <small>SQL Learning Lab · Pandas Learning Lab</small>}
         </span>
       </button>
+      {!compact && <div className="mode-switch" aria-label="学习模式">
+        <button className={mode === 'sql' ? 'active' : ''} onClick={() => switchMode('sql')}>SQL</button>
+        <button className={mode === 'pandas' ? 'active' : ''} onClick={() => switchMode('pandas')}>Pandas</button>
+        <button className={mode === 'compare' ? 'active' : ''} onClick={() => switchMode('compare')}>SQL ↔ Pandas</button>
+      </div>}
       {onNavigateSection && !compact && (
         <nav className="main-navigation" aria-label="主要导航">
           {navigation.map((item) => {

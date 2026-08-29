@@ -7,38 +7,90 @@ import {
   Target,
   TriangleAlert,
 } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AppHeader, type AppSection } from '../components/AppHeader'
 import { getProblemProgress } from '../services/storage'
-import type { ProgressMap, SqlProblem } from '../types/problem'
+import type { Difficulty, LearningLanguage, ProgressMap } from '../types/problem'
+
+interface QuestionListItem {
+  id: string
+  number: number
+  title: string
+  source: string
+  chapter: string
+  difficulty: Difficulty
+  tags: string[]
+  language?: LearningLanguage
+  solution?: string
+  explanation?: string
+}
 
 interface HomePageProps {
-  problems: SqlProblem[]
+  problems: QuestionListItem[]
+  allProblems?: QuestionListItem[]
   progress: ProgressMap
   onOpen: (id: string) => void
+  onOpenQuestion?: (problem: QuestionListItem) => void
   onReset: () => void
   libraryOnly?: boolean
   onNavigateSection: (section: AppSection) => void
+  languageMode?: 'sql' | 'pandas'
 }
 
 const filters = ['全部', '未完成', '已完成', '错题'] as const
 const difficultyFilters = ['全部难度', '简单', '中等', '困难'] as const
 const PAGE_SIZE = 10
+const LIBRARY_VIEW_KEY = 'sql-learning-lab:practice-view:v1'
 
-export function HomePage({ problems, progress, onOpen, onReset, libraryOnly = false, onNavigateSection }: HomePageProps) {
-  const [filter, setFilter] = useState<(typeof filters)[number]>('全部')
-  const [search, setSearch] = useState('')
-  const [chapter, setChapter] = useState('全部章节')
-  const [difficulty, setDifficulty] = useState<(typeof difficultyFilters)[number]>('全部难度')
-  const [page, setPage] = useState(1)
-  const libraryRef = useRef<HTMLElement | null>(null)
+type PracticeFilter = (typeof filters)[number]
+type DifficultyFilter = (typeof difficultyFilters)[number]
+
+interface LibraryViewState {
+  filter: PracticeFilter
+  search: string
+  chapter: string
+  difficulty: DifficultyFilter
+  page: number
+  wrongLanguage: '全部语言' | 'SQL' | 'Pandas'
+  knowledge: string
+}
+
+function loadLibraryView(chapters: string[]): LibraryViewState {
+  const defaults: LibraryViewState = { filter: '全部', search: '', chapter: '全部章节', difficulty: '全部难度', page: 1, wrongLanguage: '全部语言', knowledge: '全部知识点' }
+  try {
+    const saved = JSON.parse(localStorage.getItem(LIBRARY_VIEW_KEY) ?? '{}') as Partial<LibraryViewState>
+    return {
+      filter: filters.includes(saved.filter as PracticeFilter) ? saved.filter as PracticeFilter : defaults.filter,
+      search: typeof saved.search === 'string' ? saved.search : defaults.search,
+      chapter: typeof saved.chapter === 'string' && chapters.includes(saved.chapter) ? saved.chapter : defaults.chapter,
+      difficulty: difficultyFilters.includes(saved.difficulty as DifficultyFilter) ? saved.difficulty as DifficultyFilter : defaults.difficulty,
+      page: typeof saved.page === 'number' && Number.isInteger(saved.page) && saved.page > 0 ? saved.page : defaults.page,
+      wrongLanguage: ['全部语言', 'SQL', 'Pandas'].includes(saved.wrongLanguage ?? '') ? saved.wrongLanguage as LibraryViewState['wrongLanguage'] : defaults.wrongLanguage,
+      knowledge: typeof saved.knowledge === 'string' ? saved.knowledge : defaults.knowledge,
+    }
+  } catch {
+    return defaults
+  }
+}
+
+export function HomePage({ problems, allProblems, progress, onOpen, onOpenQuestion, onReset, libraryOnly = false, onNavigateSection, languageMode = 'sql' }: HomePageProps) {
   const chapters = ['全部章节', ...new Set(problems.map((problem) => problem.chapter))]
+  const [initialView] = useState(() => loadLibraryView(chapters))
+  const [filter, setFilter] = useState<PracticeFilter>(initialView.filter)
+  const [search, setSearch] = useState(initialView.search)
+  const [chapter, setChapter] = useState(initialView.chapter)
+  const [difficulty, setDifficulty] = useState<DifficultyFilter>(initialView.difficulty)
+  const [page, setPage] = useState(initialView.page)
+  const [wrongLanguage, setWrongLanguage] = useState(initialView.wrongLanguage)
+  const [knowledge, setKnowledge] = useState(initialView.knowledge)
+  const libraryRef = useRef<HTMLElement | null>(null)
   const completed = problems.filter((item) => getProblemProgress(progress, item.id).completed).length
   const incorrect = problems.filter((item) => getProblemProgress(progress, item.id).incorrectAttempts > 0).length
 
   const visibleProblems = useMemo(() => {
     const query = search.trim().toLowerCase()
-    return problems.filter((problem) => {
+    const sourceProblems = filter === '错题' && allProblems ? allProblems : problems
+    return sourceProblems.filter((problem) => {
       const item = getProblemProgress(progress, problem.id)
       const matchesFilter = filter === '全部'
         || (filter === '未完成' && !item.completed)
@@ -49,12 +101,17 @@ export function HomePage({ problems, progress, onOpen, onReset, libraryOnly = fa
         || problem.tags.some((tag) => tag.toLowerCase().includes(query))
       const matchesChapter = chapter === '全部章节' || problem.chapter === chapter
       const matchesDifficulty = difficulty === '全部难度' || problem.difficulty === difficulty
-      return matchesFilter && matchesSearch && matchesChapter && matchesDifficulty
+      const matchesLanguage = filter !== '错题' || wrongLanguage === '全部语言' || (problem.language ?? 'sql') === wrongLanguage.toLowerCase()
+      const matchesKnowledge = filter !== '错题' || knowledge === '全部知识点' || normalizeKnowledge(problem.tags) === knowledge
+      return matchesFilter && matchesSearch && matchesChapter && matchesDifficulty && matchesLanguage && matchesKnowledge
     })
-  }, [chapter, difficulty, filter, problems, progress, search])
+  }, [allProblems, chapter, difficulty, filter, knowledge, problems, progress, search, wrongLanguage])
   const pageCount = Math.max(1, Math.ceil(visibleProblems.length / PAGE_SIZE))
   const currentPage = Math.min(page, pageCount)
   const pageProblems = visibleProblems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+  useEffect(() => {
+    localStorage.setItem(LIBRARY_VIEW_KEY, JSON.stringify({ filter, search, chapter, difficulty, page: currentPage, wrongLanguage, knowledge }))
+  }, [chapter, currentPage, difficulty, filter, knowledge, search, wrongLanguage])
   const changePage = (nextPage: number) => {
     setPage(Math.max(1, Math.min(nextPage, pageCount)))
     requestAnimationFrame(() => libraryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
@@ -67,7 +124,7 @@ export function HomePage({ problems, progress, onOpen, onReset, libraryOnly = fa
 
   return (
     <div className="home-page">
-      <AppHeader completed={completed} total={problems.length} onReset={reset} currentSection={libraryOnly ? 'practice' : 'dashboard'} onNavigateSection={onNavigateSection} onHome={() => onNavigateSection('dashboard')} />
+      <AppHeader completed={completed} total={problems.length} mode={languageMode} onReset={reset} currentSection={libraryOnly ? 'practice' : 'dashboard'} onNavigateSection={onNavigateSection} onHome={() => onNavigateSection('dashboard')} />
       <main className="home-main">
         {!libraryOnly && <>
         <section className="hero-section">
@@ -109,8 +166,8 @@ export function HomePage({ problems, progress, onOpen, onReset, libraryOnly = fa
           <div className="section-heading">
             <div>
               <span className="eyebrow">PRACTICE LAB</span>
-              <h2>{libraryOnly ? 'SQL 数据分析练习' : '题库'}</h2>
-          {libraryOnly && <p className="section-description">{problems.length} 道题，从基础查询逐步走向用户与商业数据分析。</p>}
+              <h2>{libraryOnly ? `${languageMode === 'sql' ? 'SQL' : 'Pandas'} 数据分析练习` : '题库'}</h2>
+          {libraryOnly && <p className="section-description">{problems.length} 道题，从基础操作逐步走向用户与商业数据分析。</p>}
             </div>
             <label className="search-box">
               <Search size={17} />
@@ -119,7 +176,7 @@ export function HomePage({ problems, progress, onOpen, onReset, libraryOnly = fa
           </div>
           <div className="library-controls"><div className="filter-row">
             {filters.map((item) => (
-              <button key={item} className={filter === item ? 'active' : ''} onClick={() => { setFilter(item); resetPage() }}>
+              <button key={item} className={filter === item ? 'active' : ''} onClick={() => { setFilter(item); if (item === '错题') setChapter('全部章节'); resetPage() }}>
                 {item}
               </button>
             ))}
@@ -127,24 +184,37 @@ export function HomePage({ problems, progress, onOpen, onReset, libraryOnly = fa
             <select aria-label="按难度筛选" value={difficulty} onChange={(event) => { setDifficulty(event.target.value as (typeof difficultyFilters)[number]); resetPage() }}>
               {difficultyFilters.map((item) => <option key={item}>{item}</option>)}
             </select>
-            <select aria-label="按章节筛选" value={chapter} onChange={(event) => { setChapter(event.target.value); resetPage() }}>{chapters.map((item) => <option key={item}>{item}</option>)}</select>
+            {filter === '错题' ? <><select aria-label="按语言筛选错题" value={wrongLanguage} onChange={(event) => { setWrongLanguage(event.target.value as LibraryViewState['wrongLanguage']); setChapter('全部章节'); resetPage() }}><option>全部语言</option><option>SQL</option><option>Pandas</option></select><select aria-label="按知识点筛选错题" value={knowledge} onChange={(event) => { setKnowledge(event.target.value); setChapter('全部章节'); resetPage() }}>{['全部知识点', '筛选', '连接 JOIN / merge', '分组 GROUP BY / groupby', '窗口 Window / shift', '日期 Date', '清洗与字符串', '重塑 Pivot'].map((item) => <option key={item}>{item}</option>)}</select></> : <select aria-label="按章节筛选" value={chapter} onChange={(event) => { setChapter(event.target.value); resetPage() }}>{chapters.map((item) => <option key={item}>{item}</option>)}</select>}
           </div></div>
 
           <div className="problem-list">
             {pageProblems.map((problem) => {
               const item = getProblemProgress(progress, problem.id)
               return (
-                <button className="problem-card" key={problem.id} onClick={() => onOpen(problem.id)}>
+                <button className="problem-card" key={problem.id} onClick={() => onOpenQuestion ? onOpenQuestion(problem) : onOpen(problem.id)}>
                   <span className="problem-number">{String(problem.number).padStart(2, '0')}</span>
                   <span className="problem-main">
                     <span className="problem-title-row">
                       <strong>{problem.title}</strong>
+                      <span className={`language-badge ${problem.language ?? 'sql'}`}>{(problem.language ?? 'sql') === 'pandas' ? 'Pandas' : 'SQL'}</span>
                       <span className={`difficulty ${problem.difficulty}`}>{problem.difficulty}</span>
                       <span className="problem-source">{problem.source}</span>
                     </span>
                     <span className="problem-tags">
                       {problem.tags.map((tag) => <span key={tag}>{tag}</span>)}
                     </span>
+                    {filter === '错题' && <span className="wrong-record-detail">
+                      <span className="wrong-record-meta">
+                        <strong>错误 {item.incorrectAttempts} 次</strong>
+                        <span>{normalizeKnowledge(problem.tags)}</span>
+                        <time>{formatAttemptTime(item.lastAttemptAt)}</time>
+                      </span>
+                      <span className="wrong-code-pair">
+                        <span><small>我的代码</small><code>{item.lastIncorrectCode ?? item.lastIncorrectSql ?? '未保存'}</code></span>
+                        <span><small>正确代码</small><code>{problem.solution ?? '进入题目查看参考实现'}</code></span>
+                      </span>
+                      <span className="wrong-reason"><small>错误原因</small>{item.lastErrorReason ?? '运行结果与预期输出不一致，请重新检查转换步骤。'}</span>
+                    </span>}
                   </span>
                   <span className={`completion-state ${item.completed ? 'done' : ''}`}>
                     {item.completed ? <Check size={16} /> : <CircleDot size={16} />}
@@ -171,4 +241,22 @@ export function HomePage({ problems, progress, onOpen, onReset, libraryOnly = fa
       <footer>SQL Learning Lab · Built for deliberate practice</footer>
     </div>
   )
+}
+
+function normalizeKnowledge(tags: string[]) {
+  const text = tags.join(' ').toLowerCase()
+  if (/join|merge/.test(text)) return '连接 JOIN / merge'
+  if (/group|聚合|sum|avg|mean/.test(text)) return '分组 GROUP BY / groupby'
+  if (/window|shift|diff|rank|cumsum|rolling|transform/.test(text)) return '窗口 Window / shift'
+  if (/date|日期|month|留存/.test(text)) return '日期 Date'
+  if (/string|字符串|clean|清洗|fillna|missing/.test(text)) return '清洗与字符串'
+  if (/pivot|melt|重塑/.test(text)) return '重塑 Pivot'
+  return '筛选'
+}
+
+function formatAttemptTime(value?: string) {
+  if (!value) return '暂无时间记录'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '暂无时间记录'
+  return new Intl.DateTimeFormat('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(date)
 }

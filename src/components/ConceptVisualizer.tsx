@@ -83,9 +83,10 @@ function WindowVisualizer() {
 
 function PipelineVisualizer({ type }: { type: VisualType }) {
   const labels: Record<string, string[]> = {
-    select: ['原始表：全部字段', 'SELECT 指定字段', '结果：只保留分析列'], filter: ['原始数据', '逐行判断 WHERE', '保留 TRUE 的行'], aggregate: ['多条明细行', 'SUM / AVG / COUNT', '一个指标'], subquery: ['运行内层查询', '得到中间值或表', '外层查询继续计算'], case: ['读取当前行', '按顺序匹配 WHEN', '生成分类字段'], project: ['明确业务问题', '拆解转换步骤', '验证最终指标'],
+    select: ['原始表：全部字段', 'SELECT 指定字段', '结果：只保留分析列'], filter: ['原始数据', '逐行判断 WHERE', '保留 TRUE 的行'], aggregate: ['多条明细行', 'SUM / AVG / COUNT', '一个指标'], subquery: ['运行内层查询', '得到中间值或表', '外层查询继续计算'], case: ['读取当前行', '按顺序匹配 WHEN', '生成分类字段'],
   }
-  const items = labels[type] ?? labels.project
+  const items = labels[type]
+  if (!items) return null
   return <div className="pipeline-visual">{items.map((item, index) => <div key={item}><span>{index + 1}</span><strong>{item}</strong>{index < items.length - 1 && <ArrowDown size={18} />}</div>)}</div>
 }
 

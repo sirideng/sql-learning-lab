@@ -23,7 +23,7 @@ export function useProgress() {
     setProgress((current) => updateProblemProgress(current, id, { draft }))
   }, [])
 
-  const recordAttempt = useCallback((id: string, correct: boolean, draft: string) => {
+  const recordAttempt = useCallback((id: string, correct: boolean, draft: string, language: 'sql' | 'pandas' = 'sql', errorReason?: string) => {
     setActivity((current) => recordActivity(current))
     setProgress((current) => {
       const item = getProblemProgress(current, id)
@@ -33,7 +33,10 @@ export function useProgress() {
         completed: item.completed || correct,
         lastAttemptAt: new Date().toISOString(),
         draft,
+        language,
         lastIncorrectSql: correct ? item.lastIncorrectSql : draft,
+        lastIncorrectCode: correct ? item.lastIncorrectCode : draft,
+        lastErrorReason: correct ? item.lastErrorReason : (errorReason ?? '运行结果与预期输出不一致，请检查字段、行数和转换步骤。'),
       })
     })
   }, [])

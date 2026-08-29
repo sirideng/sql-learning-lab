@@ -1,6 +1,7 @@
 export type Difficulty = '简单' | '中等' | '困难'
+export type LearningLanguage = 'sql' | 'pandas' | 'both'
 
-export type CellValue = string | number | null
+export type CellValue = string | number | boolean | null
 
 export interface DataTable {
   name: string
@@ -35,6 +36,35 @@ export interface SqlProblem {
   explanationSteps: ExplanationStep[]
   explanation?: string
   visualizationSteps?: ExplanationStep[]
+  language?: 'sql'
+}
+
+export interface LearningQuestion {
+  id: string
+  number: number
+  title: string
+  source: string
+  chapter: string
+  language: LearningLanguage
+  difficulty: Difficulty
+  tags: string[]
+  description: string
+  challenge: string
+  tables: DataTable[]
+  sampleData: DataTable[]
+  expectedOutput: DataTable
+  hints: string[]
+  solution: string
+  explanation: string
+  visualizationSteps: ExplanationStep[]
+}
+
+export interface PandasQuestion extends LearningQuestion {
+  language: 'pandas'
+  starterCode: string
+  validationPatterns: string[]
+  sqlEquivalent?: string
+  alternateSqlId?: string
 }
 
 export interface ProblemProgress {
@@ -44,6 +74,9 @@ export interface ProblemProgress {
   lastAttemptAt?: string
   draft?: string
   lastIncorrectSql?: string
+  lastIncorrectCode?: string
+  lastErrorReason?: string
+  language?: 'sql' | 'pandas'
 }
 
 export type ProgressMap = Record<string, ProblemProgress>
@@ -163,4 +196,62 @@ export interface PlaygroundScenario {
   sql: string
   explanation: string
   result: DataTable
+}
+
+export interface PandasChapter {
+  id: string
+  order: number
+  title: string
+  subtitle: string
+  why: { scenario: string; question: string; reason: string }
+  concepts: Array<{ title: string; what: string; when: string }>
+  code: string
+  sqlComparison: string
+  original: DataTable[]
+  steps: Array<{ title: string; description: string; code: string; table: DataTable }>
+  finalTable: DataTable
+  mistakes: Array<{ title: string; problem: string; fix: string }>
+  exercises: Array<{ question: string; hint: string; answer: string }>
+  checklist: string[]
+  visualType: 'dataframe' | 'filter' | 'groupby' | 'merge' | 'date' | 'string' | 'transform' | 'diff' | 'pivot' | 'cleaning' | 'analysis'
+}
+
+export interface CrossLanguageMapping {
+  id: string
+  title: string
+  businessQuestion: string
+  relation: string
+  tables: DataTable[]
+  sql: string
+  pandas: string
+  sqlIntermediate: DataTable
+  pandasIntermediate: DataTable
+  result: DataTable
+}
+
+export interface PandasPlaygroundScenario {
+  id: string
+  title: string
+  concept: string
+  code: string
+  requiredPatterns: string[]
+  explanation: string
+  tables: DataTable[]
+  steps: ExplanationStep[]
+  result: DataTable
+}
+
+export interface DualAnalysisCase {
+  id: string
+  title: string
+  description: string
+  tables: DataTable[]
+  stages: Array<{
+    title: string
+    purpose: string
+    sql: string
+    pandas: string
+    result: DataTable
+    conclusion: string
+  }>
 }

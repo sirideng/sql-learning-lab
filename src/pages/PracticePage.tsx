@@ -34,7 +34,9 @@ interface PracticePageProps {
   onHome: () => void
   onNavigate: (id: string) => void
   onDraft: (id: string, sql: string) => void
-  onAttempt: (id: string, correct: boolean, sql: string) => void
+  onAttempt: (id: string, correct: boolean, sql: string, language?: 'sql', errorReason?: string) => void
+  alternatePandasId?: string
+  onOpenPandas?: (id: string) => void
 }
 
 const DEFAULT_EDITOR_FONT_SIZE = 18
@@ -51,6 +53,8 @@ export function PracticePage({
   onNavigate,
   onDraft,
   onAttempt,
+  alternatePandasId,
+  onOpenPandas,
 }: PracticePageProps) {
   const saved = getProblemProgress(progress, problem.id)
   const [sql, setSql] = useState(() => {
@@ -152,7 +156,7 @@ export function PracticePage({
     try {
       const nextResult = await runSql(problem, sql)
       setResult(nextResult)
-      onAttempt(problem.id, nextResult.status === 'success', sql)
+      onAttempt(problem.id, nextResult.status === 'success', sql, 'sql', nextResult.status === 'success' ? undefined : nextResult.message)
     } finally {
       setIsRunning(false)
     }
@@ -263,6 +267,7 @@ export function PracticePage({
               <div className="problem-tags">{problem.tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
             </div>
             <div className="problem-content">
+              {alternatePandasId && onOpenPandas && <div className="language-solution-switch"><button className="active">SQL</button><button onClick={() => onOpenPandas(alternatePandasId)}>Pandas</button><span>同一数据问题 · 两种实现</span></div>}
               <article>
                 <h2>问题描述</h2>
                 <p>{problem.description}</p>

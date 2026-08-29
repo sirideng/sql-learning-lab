@@ -210,6 +210,7 @@ function quoteIdentifier(identifier: string) {
 
 function inferSqliteType(values: CellValue[]) {
   const populated = values.filter((value) => value !== null)
+  if (populated.length > 0 && populated.every((value) => typeof value === 'boolean')) return 'INTEGER'
   if (populated.length > 0 && populated.every((value) => typeof value === 'number' && Number.isInteger(value))) return 'INTEGER'
   if (populated.length > 0 && populated.every((value) => typeof value === 'number')) return 'REAL'
   return 'TEXT'
@@ -229,7 +230,7 @@ function createDatabase(SQL: SqlJsStatic, tables: DataTable[]) {
     const placeholders = table.columns.map(() => '?').join(', ')
     const insert = database.prepare(`INSERT INTO ${quoteIdentifier(table.name)} VALUES (${placeholders})`)
     try {
-      table.rows.forEach((row) => insert.run(row))
+      table.rows.forEach((row) => insert.run(row.map((value) => typeof value === 'boolean' ? Number(value) : value)))
     } finally {
       insert.free()
     }

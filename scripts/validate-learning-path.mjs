@@ -13,6 +13,7 @@ const errors = []
 const fail = (message) => errors.push(message)
 const lessonMap = new Map(lessons.map((lesson) => [lesson.id, lesson]))
 const priorityIds = new Set(['join', 'group-by', 'having', 'case-when', 'window'])
+const extendedExerciseChapterIds = new Set(['date-functions', 'string-functions', 'cte', 'analytics-cases', 'performance-basics', 'sql-pandas', 'project-lab'])
 
 const validateTable = (table, context) => {
   if (!table?.name || !Array.isArray(table.columns) || table.columns.length === 0 || !Array.isArray(table.rows)) {
@@ -59,7 +60,7 @@ for (const chapter of chapters) {
   for (const [index, exercise] of (lesson.exercises ?? []).entries()) {
     if (!(exercise.level in counts) || !exercise.question || !exercise.answer) fail(`${chapter.id} 存在无效小练习`)
     else counts[exercise.level] += 1
-    if (chapter.order >= 12) {
+    if (extendedExerciseChapterIds.has(chapter.id)) {
       if (!(exercise.difficulty in difficulties)) fail(`${chapter.id} 练习 ${index + 1} 难度无效`)
       else difficulties[exercise.difficulty] += 1
       if (!exercise.tables?.length || !exercise.expectedResult || !exercise.hints?.length || !exercise.solution || !exercise.errorTips?.length) fail(`${chapter.id} 练习 ${index + 1} 缺少数据表、预期输出、Hint、Solution 或错误提示`)
@@ -68,8 +69,8 @@ for (const chapter of chapters) {
     }
   }
   if (counts.基础 < 2 || counts.理解 < 2 || counts.综合 < 1) fail(`${chapter.id} 小练习分布不足：${JSON.stringify(counts)}`)
-  if (chapter.order >= 12 && (difficulties.Easy !== 2 || difficulties.Medium !== 3)) fail(`${chapter.id} 应有 Easy 2 题、Medium 3 题：${JSON.stringify(difficulties)}`)
-  if (chapter.order >= 12 && (!lesson.sqlExamples || lesson.sqlExamples.length < 2)) fail(`${chapter.id} 缺少基础与实际 SQL 示例`)
+  if (extendedExerciseChapterIds.has(chapter.id) && (difficulties.Easy !== 2 || difficulties.Medium !== 3)) fail(`${chapter.id} 应有 Easy 2 题、Medium 3 题：${JSON.stringify(difficulties)}`)
+  if (extendedExerciseChapterIds.has(chapter.id) && (!lesson.sqlExamples || lesson.sqlExamples.length < 2)) fail(`${chapter.id} 缺少基础与实际 SQL 示例`)
   if (!Array.isArray(lesson.checklist) || lesson.checklist.length < 4) fail(`${chapter.id} 学完检查少于 4 项`)
 }
 
@@ -206,7 +207,7 @@ function compareResult(set, expected, ordered) {
 }
 
 const SQL = await initSqlJs()
-for (const chapter of chapters.filter((item) => item.order >= 12)) {
+for (const chapter of chapters.filter((item) => extendedExerciseChapterIds.has(item.id))) {
   const lesson = lessonMap.get(chapter.id)
   for (const [index, exercise] of lesson.exercises.entries()) {
     let database
@@ -228,5 +229,5 @@ if (errors.length > 0) {
 
 console.log(`Learning Path 校验通过：${chapters.length} 个章节，数据结构、章节引用与表字段一致。`)
 console.log('所有 SQL 执行可视化步骤均已配对独立 SQL 代码。')
-console.log('Chapter 12–18 共 35 道配套练习，全部 Solution 已真实执行并与预期输出一致。')
+console.log('7 个进阶章节共 35 道配套练习，全部 Solution 已真实执行并与预期输出一致。')
 console.log('Analytics Case Study、执行顺序、SQL/Pandas 对照和 Project Lab 专项结构完整。')

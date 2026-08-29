@@ -5,6 +5,8 @@ const ACTIVITY_KEY = 'sql-learning-lab:activity:v1'
 const ACTIVITY_MIGRATION_KEY = 'sql-learning-lab:activity-counts-migrated:v2'
 const LESSONS_KEY = 'sql-learning-lab:lessons:v1'
 const PROJECTS_KEY = 'sql-learning-lab:projects:v1'
+const SCHEMA_VERSION_KEY = 'sql-learning-lab:schema-version'
+const CURRENT_SCHEMA_VERSION = 2
 
 const emptyProgress = (): ProblemProgress => ({
   completed: false,
@@ -14,6 +16,7 @@ const emptyProgress = (): ProblemProgress => ({
 
 export function loadProgress(): ProgressMap {
   try {
+    migrateStorage()
     const value = localStorage.getItem(STORAGE_KEY)
     return value ? (JSON.parse(value) as ProgressMap) : {}
   } catch {
@@ -44,7 +47,23 @@ export function clearProgress(): ProgressMap {
   localStorage.removeItem(ACTIVITY_MIGRATION_KEY)
   localStorage.removeItem(LESSONS_KEY)
   localStorage.removeItem(PROJECTS_KEY)
+  localStorage.setItem(SCHEMA_VERSION_KEY, String(CURRENT_SCHEMA_VERSION))
   return {}
+}
+
+function migrateStorage() {
+  const version = Number(localStorage.getItem(SCHEMA_VERSION_KEY) ?? 1)
+  if (version >= CURRENT_SCHEMA_VERSION) return
+  try {
+    const progress = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as ProgressMap
+    Object.values(progress).forEach((item) => {
+      if (!item.lastIncorrectCode && item.lastIncorrectSql) item.lastIncorrectCode = item.lastIncorrectSql
+      if (!item.language) item.language = 'sql'
+    })
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
+  } finally {
+    localStorage.setItem(SCHEMA_VERSION_KEY, String(CURRENT_SCHEMA_VERSION))
+  }
 }
 
 export function loadActivity(progress: ProgressMap = {}): ActivityMap {

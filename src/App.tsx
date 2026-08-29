@@ -3,6 +3,11 @@ import additionalProblemData from './data/additionalQuestions.json'
 import careerProblemData from './data/careerQuestions.json'
 import chapterDeepDiveData from './data/chapterDeepDives.json'
 import learningData from './data/learningPath.json'
+import { crossLanguageMappings } from './data/crossLanguageMappings'
+import { dualAnalysisCases } from './data/dualAnalysisCases'
+import { pandasChapters } from './data/pandasLearningPath'
+import { pandasPlaygroundScenarios } from './data/pandasPlaygroundScenarios'
+import { pandasQuestions } from './data/pandasQuestions'
 import playgroundData from './data/playgroundScenarios.json'
 import problemData from './data/problems.json'
 import windowPracticeData from './data/windowPracticeQuestions.json'
@@ -12,7 +17,11 @@ import { HomePage } from './pages/HomePage'
 import { LearningPathPage } from './pages/LearningPathPage'
 import { PlaygroundPage } from './pages/PlaygroundPage'
 import { PracticePage } from './pages/PracticePage'
-import type { ChapterDeepDive, ExplanationStep, LearningChapter, PlaygroundScenario, SqlProblem } from './types/problem'
+import { ComparisonPage } from './pages/ComparisonPage'
+import { PandasLearningPage } from './pages/PandasLearningPage'
+import { PandasPlaygroundPage } from './pages/PandasPlaygroundPage'
+import { PandasPracticePage } from './pages/PandasPracticePage'
+import type { ChapterDeepDive, ExplanationStep, LearningChapter, LearningLanguage, PlaygroundScenario, SqlProblem } from './types/problem'
 
 const legacyMetadata: Record<string, { source: string; chapter: string }> = {
   'next-day-retention': { source: 'LeetCode · 经典', chapter: 'JOIN' },
@@ -30,7 +39,7 @@ const problems = [
     .map((problem) => ({ ...problem, explanationSteps: problem.visualizationSteps })),
   ...(windowPracticeData as (Omit<SqlProblem, 'explanationSteps'> & { visualizationSteps: ExplanationStep[] })[])
     .map((problem) => ({ ...problem, explanationSteps: problem.visualizationSteps })),
-] as SqlProblem[]
+].map((problem) => ({ ...problem, language: 'sql' as const })) as SqlProblem[]
 const chapterDeepDives = Object.fromEntries((chapterDeepDiveData as ChapterDeepDive[]).map((item) => [item.id, item]))
 const chapters = (learningData as Omit<LearningChapter, 'deepDive'>[]).map((chapter) => ({ ...chapter, deepDive: chapterDeepDives[chapter.id] })) as LearningChapter[]
 const scenarios = playgroundData as PlaygroundScenario[]
@@ -50,11 +59,18 @@ export default function App() {
   }, [])
 
   const problemId = route.startsWith('problem/') ? route.slice('problem/'.length) : null
+  const pandasProblemId = route.startsWith('pandas/problem/') ? route.slice('pandas/problem/'.length) : null
   const selectedProblem = useMemo(
     () => problems.find((problem) => problem.id === problemId || String(problem.number) === problemId),
     [problemId],
   )
+  const selectedPandasProblem = useMemo(
+    () => pandasQuestions.find((problem) => problem.id === pandasProblemId || String(problem.number) === pandasProblemId),
+    [pandasProblemId],
+  )
   const completed = problems.filter((problem) => progress[problem.id]?.completed).length
+  const pandasCompleted = pandasQuestions.filter((problem) => progress[problem.id]?.completed).length
+  const allQuestions = [...problems, ...pandasQuestions]
 
   const openProblem = (id: string) => {
     const problem = problems.find((item) => item.id === id || String(item.number) === id)
@@ -70,6 +86,27 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const openPandasProblem = (id: string) => {
+    const problem = pandasQuestions.find((item) => item.id === id || String(item.number) === id)
+    if (!problem) return
+    window.location.hash = `/pandas/problem/${problem.id}`
+    setRoute(`pandas/problem/${problem.id}`)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const navigatePandasSection = (section: 'dashboard' | 'learn' | 'practice' | 'playground') => {
+    const target = section === 'dashboard' ? 'dashboard' : `pandas/${section}`
+    window.location.hash = `/${target}`
+    setRoute(target)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const openAnyQuestion = (question: { id: string; language?: LearningLanguage }) => question.language === 'pandas' ? openPandasProblem(question.id) : openProblem(question.id)
+
+  if (selectedPandasProblem) {
+    return <PandasPracticePage key={selectedPandasProblem.id} problem={selectedPandasProblem} progress={progress} total={pandasQuestions.length} completed={pandasCompleted} onHome={() => navigatePandasSection('practice')} onNavigate={openPandasProblem} onOpenSql={openProblem} onDraft={saveDraft} onAttempt={recordAttempt} />
+  }
+
   if (selectedProblem) {
     return (
       <PracticePage
@@ -82,6 +119,8 @@ export default function App() {
         onNavigate={openProblem}
         onDraft={saveDraft}
         onAttempt={recordAttempt}
+        alternatePandasId={pandasQuestions.find((item) => item.alternateSqlId === selectedProblem.id)?.id}
+        onOpenPandas={openPandasProblem}
       />
     )
   }
@@ -90,13 +129,30 @@ export default function App() {
     return <LearningPathPage chapters={chapters} completedLessons={completedLessons} completedProblems={completed} totalProblems={problems.length} initialChapter={route.split('/')[1]} projectProgress={projectProgress} onNavigateSection={navigateSection} onToggleLesson={toggleLesson} onToggleProjectStep={toggleProject} onOpenPractice={openProblem} />
   }
 
+
+  if (route.startsWith('pandas/learn')) {
+    return <PandasLearningPage chapters={pandasChapters} completedLessons={completedLessons} completed={pandasCompleted} total={pandasQuestions.length} initialChapter={route.split('/')[2]} onToggleLesson={toggleLesson} onNavigateSection={navigatePandasSection} />
+  }
+
+  if (route === 'pandas/playground') {
+    return <PandasPlaygroundPage scenarios={pandasPlaygroundScenarios} completed={pandasCompleted} total={pandasQuestions.length} onNavigateSection={navigatePandasSection} />
+  }
+
+  if (route === 'pandas/practice') {
+    return <HomePage problems={pandasQuestions} allProblems={allQuestions} progress={progress} onOpen={(id) => openPandasProblem(id)} onOpenQuestion={openAnyQuestion} onReset={reset} libraryOnly languageMode="pandas" onNavigateSection={navigatePandasSection} />
+  }
+
+  if (route === 'compare') {
+    return <ComparisonPage mappings={crossLanguageMappings} cases={dualAnalysisCases} completed={completed + pandasCompleted} total={allQuestions.length} />
+  }
+
   if (route === 'playground') {
     return <PlaygroundPage scenarios={scenarios} completed={completed} total={problems.length} onNavigateSection={navigateSection} />
   }
 
   if (route === 'practice') {
-    return <HomePage problems={problems} progress={progress} onOpen={openProblem} onReset={reset} libraryOnly onNavigateSection={navigateSection} />
+    return <HomePage problems={problems} allProblems={allQuestions} progress={progress} onOpen={openProblem} onOpenQuestion={openAnyQuestion} onReset={reset} libraryOnly languageMode="sql" onNavigateSection={navigateSection} />
   }
 
-  return <DashboardPage problems={problems} chapters={chapters} progress={progress} activity={activity} completedLessons={completedLessons} projectProgress={projectProgress} onOpen={openProblem} onReset={reset} onNavigateSection={navigateSection} />
+  return <DashboardPage problems={problems} pandasProblems={pandasQuestions} chapters={chapters} progress={progress} activity={activity} completedLessons={completedLessons} projectProgress={projectProgress} onOpen={openProblem} onOpenPandas={openPandasProblem} onReset={reset} onNavigateSection={navigateSection} />
 }
